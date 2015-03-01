@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+inlet_http_api
 
 # Folders
 _obj

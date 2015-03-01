@@ -1,0 +1,21 @@
+{
+    "http": {
+        "address": "127.0.0.1:8080",
+        "server": "spirit api server",
+        "api_header": "X-API",
+        "cookies_domain": "",
+        "p3p": "CP=\"CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR\"",
+        "allow_origins": ["127.0.0.1:8080", "example.com"],
+        "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept"],
+        "allow_methods": []
+    },
+    "address": [{
+        "name": "test",
+        "type": "mqs",
+        "url": "accesskey_id:accesskey_secret@http://owner.mqs-cn-beijing.aliyuncs.com/queue"
+    }],
+    "graphs": [{
+        "api": "api.user.get",
+        "graph":["test"]
+    }]
+}
