@@ -34,7 +34,8 @@ func main() {
 		inlet_http.SetHTTPConfig(httpConf),
 		inlet_http.SetGraphProvider(graphProvider),
 		inlet_http.SetResponseHandler(responseHandle),
-		inlet_http.SetErrorResponseHandler(errorResponseHandler))
+		inlet_http.SetErrorResponseHandler(errorResponseHandler),
+		inlet_http.SetRequestDecoder(requestDecoder))
 
 	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
@@ -70,6 +71,12 @@ type APIResponse struct {
 	ErrorNamespace string      `json:"error_namespace,omitempty"`
 	Message        string      `json:"message"`
 	Result         interface{} `json:"result"`
+}
+
+func requestDecoder(data []byte) (ret map[string]interface{}, err error) {
+	ret = make(map[string]interface{})
+	err = json.Unmarshal(data, &ret)
+	return
 }
 
 func optionHandle(w http.ResponseWriter, r *http.Request) {
