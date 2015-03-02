@@ -10,10 +10,6 @@ import (
 	"github.com/spirit-contrib/inlet_http"
 )
 
-var (
-	requester inlet_http.Requester
-)
-
 const (
 	SPIRIT_NAME    = "inlet_http_api"
 	METHOD_OPTIONS = "OPTIONS"
@@ -41,25 +37,11 @@ func main() {
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
 
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
+	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
 
-	httpAPISpirit.Hosting(httpAPIComponent)
-
-	httpAPISpirit.Build()
-
-	receivers := httpAPISpirit.GetComponent(SPIRIT_NAME).GetReceivers("port.callback")
-
-	if receivers == nil {
-		panic("inlet_http_api receiver not exist")
-	}
-
-	if len(receivers) != 1 {
-		panic("the port callback with inlet_http_api should only have one receiver")
-	}
-
-	callbackAddr := receivers[0].Address()
+	httpAPISpirit.Hosting(httpAPIComponent).Build()
 
 	inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
-	inletHTTP.Requester().Init(callbackAddr)
 
 	go inletHTTP.Run(optionHandle)
 	httpAPISpirit.Run()
@@ -106,6 +88,7 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 			Result:         nil,
 		}
 	}
+	w.WriteHeader(http.StatusInternalServerError)
 	writeResponse(&resp, w, r)
 }
 
@@ -134,6 +117,7 @@ func errorHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request)
 		Result:         nil,
 	}
 
+	w.WriteHeader(http.StatusInternalServerError)
 	writeResponse(&resp, w, r)
 }
 

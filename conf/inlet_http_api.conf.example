@@ -2,19 +2,29 @@
     "http": {
         "address": "127.0.0.1:8080",
         "server": "spirit api server",
+        "timeout": 10000,
         "api_header": "X-API",
         "cookies_domain": "",
         "p3p": "CP=\"CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR\"",
-        "allow_origins": ["127.0.0.1:8080", "example.com"],
+        "allow_origins": ["*"],
         "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept"]
     },
     "address": [{
         "name": "port.new_task",
         "type": "mqs",
-        "url": "accesskey_id:accesskey_secret@http://owner.mqs-cn-beijing.aliyuncs.com/queue"
+        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/todo-task-new"
+    },{
+        "name": "port.api.error",
+        "type": "mqs",
+        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/api-error-srv001-001"
+    },{
+        "name": "port.api.callback",
+        "type": "mqs",
+        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/api-callback-srv001-001"
     }],
     "graphs": [{
         "api": "api.task.new",
-        "graph":["port.new_task"]
+        "graph": ["port.new_task", "port.api.callback"],
+        "error_address_name":"port.api.error"
     }]
 }

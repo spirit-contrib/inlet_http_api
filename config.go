@@ -71,8 +71,9 @@ type AddressConfig struct {
 }
 
 type GraphsConfig struct {
-	API   string   `json:"api"`
-	Graph []string `json:"graph"`
+	API              string   `json:"api"`
+	Graph            []string `json:"graph"`
+	ErrorAddressName string   `json:"error_address_name"`
 }
 
 func LoadConfig(filename string) InletHTTPAPIConfig {

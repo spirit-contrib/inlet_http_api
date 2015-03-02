@@ -18,7 +18,7 @@ const (
 type APIGraphProvider struct {
 	APIHeader string
 
-	apiGraph map[string][]spirit.MessageAddress
+	apiGraph map[string]spirit.MessageGraph
 }
 
 func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphConf []GraphsConfig) inlet_http.GraphProvider {
@@ -38,7 +38,7 @@ func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphCon
 		mapAddr[addr.Name] = spirit.MessageAddress{Type: addr.Type, Url: addr.Url}
 	}
 
-	apiGraph := make(map[string][]spirit.MessageAddress)
+	apiGraph := make(map[string]spirit.MessageGraph)
 
 	for _, graph := range graphConf {
 		if apiName, exist := apiGraph[graph.API]; exist {
@@ -52,7 +52,18 @@ func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphCon
 					panic(fmt.Sprintf("address of %s not exist", addrName))
 				}
 			}
-			apiGraph[graph.API] = addrs
+
+			g := make(spirit.MessageGraph)
+			g.AddAddress(addrs...)
+
+			graph.ErrorAddressName = strings.TrimSpace(graph.ErrorAddressName)
+			if graph.ErrorAddressName != "" {
+				if addr, exist := mapAddr[graph.ErrorAddressName]; exist {
+					g.SetErrorAddress(addr)
+				}
+			}
+
+			apiGraph[graph.API] = g
 		}
 	}
 
@@ -67,12 +78,12 @@ func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphCon
 	}
 }
 
-func (p *APIGraphProvider) SetGraph(apiName string, addr []spirit.MessageAddress) inlet_http.GraphProvider {
-	p.apiGraph[apiName] = addr
+func (p *APIGraphProvider) SetGraph(apiName string, graph spirit.MessageGraph) inlet_http.GraphProvider {
+	p.apiGraph[apiName] = graph
 	return p
 }
 
-func (p *APIGraphProvider) GetGraph(r *http.Request) (address []spirit.MessageAddress, err error) {
+func (p *APIGraphProvider) GetGraph(r *http.Request) (graph spirit.MessageGraph, err error) {
 	if r.Method != METHOD_POST {
 		err = ERR_METHOD_IS_NOT_POST.New(errors.Params{"method": r.Method})
 		return
@@ -86,11 +97,11 @@ func (p *APIGraphProvider) GetGraph(r *http.Request) (address []spirit.MessageAd
 		return
 	}
 
-	if addr, exist := p.apiGraph[apiName]; !exist {
+	if apiGraph, exist := p.apiGraph[apiName]; !exist {
 		err = ERR_API_GRAPH_IS_NOT_EXIST.New(errors.Params{"api": apiName})
 		return
 	} else {
-		address = addr
+		graph = apiGraph
 	}
 	return
 }
