@@ -6,16 +6,15 @@
         "cookies_domain": "",
         "p3p": "CP=\"CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR\"",
         "allow_origins": ["127.0.0.1:8080", "example.com"],
-        "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept"],
-        "allow_methods": []
+        "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept"]
     },
     "address": [{
-        "name": "test",
+        "name": "port.new_task",
         "type": "mqs",
         "url": "accesskey_id:accesskey_secret@http://owner.mqs-cn-beijing.aliyuncs.com/queue"
     }],
     "graphs": [{
-        "api": "api.user.get",
-        "graph":["test"]
+        "api": "api.task.new",
+        "graph":["port.new_task"]
     }]
 }
