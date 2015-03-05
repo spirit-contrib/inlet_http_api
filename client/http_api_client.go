@@ -52,9 +52,11 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 	_, body, errs := gorequest.New().Post(p.url).Set(p.apiHeaderName, apiName).Send(string(data)).End()
 
 	var tmpResp struct {
-		Code    uint64      `json:"code"`
-		Message string      `json:"message"`
-		Result  interface{} `json:"result"`
+		Code           uint64      `json:"code"`
+		ErrorId        string      `json:"error_id,omitempty"`
+		ErrorNamespace string      `json:"error_namespace,omitempty"`
+		Message        string      `json:"message"`
+		Result         interface{} `json:"result"`
 	}
 
 	err = errs_to_error(errs)
@@ -68,6 +70,13 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 		tmpResp.Result = v
 		if e := json.Unmarshal([]byte(body), &tmpResp); e != nil {
 			err = ERR_API_CLIENT_RESPONSE_UNMARSHAL_FAILED.New(errors.Params{"api": apiName, "url": p.url, "err": e})
+			return
+		}
+
+		if tmpResp.Code == 0 {
+			return
+		} else {
+			err = ERR_API_CLIENT_ERROR_MESSAGE.New(errors.Params{"api": apiName, "url": p.url, "code": tmpResp.Code, "message": tmpResp.Message, "err_id": tmpResp.ErrorId, "err_namespace": tmpResp.ErrorNamespace})
 			return
 		}
 	}
