@@ -8,9 +8,10 @@ import (
 )
 
 type InletHTTPAPIConfig struct {
-	HTTP    HTTPConfig      `json:"http"`
-	Address []AddressConfig `json:"address"`
-	Graphs  []GraphsConfig  `json:"graphs"`
+	HTTP               HTTPConfig      `json:"http"`
+	IncludeConfigFiles []string        `json:"include_config_files"`
+	Address            []AddressConfig `json:"address"`
+	Graphs             []GraphsConfig  `json:"graphs"`
 }
 
 type HTTPConfig struct {
@@ -111,6 +112,27 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 	for _, graph := range conf.Graphs {
 		if graph.IsProxy {
 			proxyAPI[graph.API] = true
+		}
+	}
+
+	//read include configs
+	if conf.IncludeConfigFiles != nil && len(conf.IncludeConfigFiles) > 0 {
+		for _, configFile := range conf.IncludeConfigFiles {
+			bFile, e := ioutil.ReadFile(configFile)
+			if e != nil {
+				panic(e)
+			}
+			exConf := InletHTTPAPIConfig{}
+			if e = json.Unmarshal(bFile, &exConf); e != nil {
+				panic(e)
+			}
+
+			if exConf.Graphs != nil && len(exConf.Graphs) > 0 {
+				conf.Graphs = append(conf.Graphs, exConf.Graphs...)
+			}
+			if exConf.Address != nil && len(exConf.Address) > 0 {
+				conf.Address = append(conf.Address, exConf.Address...)
+			}
 		}
 	}
 
