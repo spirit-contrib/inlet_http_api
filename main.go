@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gogap/errors"
 	"github.com/gogap/logs"
@@ -56,8 +57,11 @@ type APIResponse struct {
 }
 
 func requestDecoder(data []byte) (ret map[string]interface{}, err error) {
-	ret = make(map[string]interface{})
-	err = json.Unmarshal(data, &ret)
+	str := strings.TrimSpace(string(data))
+	if str != "" {
+		ret = make(map[string]interface{})
+		err = json.Unmarshal(data, &ret)
+	}
 	return
 }
 
