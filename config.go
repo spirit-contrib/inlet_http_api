@@ -26,6 +26,19 @@ type HTTPConfig struct {
 	responseHeaders map[string]string `json:"-"`
 }
 
+type AddressConfig struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Url  string `json:"url"`
+}
+
+type GraphsConfig struct {
+	API              string   `json:"api"`
+	Graph            []string `json:"graph"`
+	IsProxy          bool     `json:"is_proxy,omitempty"`
+	ErrorAddressName string   `json:"error_address_name"`
+}
+
 func parseRefer(url string) (protocol string, domain string) {
 	url = strings.TrimSpace(url)
 
@@ -64,18 +77,6 @@ func (p *HTTPConfig) allowHeaders() string {
 	return ""
 }
 
-type AddressConfig struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Url  string `json:"url"`
-}
-
-type GraphsConfig struct {
-	API              string   `json:"api"`
-	Graph            []string `json:"graph"`
-	ErrorAddressName string   `json:"error_address_name"`
-}
-
 func LoadConfig(filename string) InletHTTPAPIConfig {
 	bFile, e := ioutil.ReadFile(filename)
 	if e != nil {
@@ -105,6 +106,12 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		conf.HTTP.responseHeaders["Server"] = conf.HTTP.Server
 	} else {
 		conf.HTTP.responseHeaders["Server"] = "spirit"
+	}
+
+	for _, graph := range conf.Graphs {
+		if graph.IsProxy {
+			proxyAPI[graph.API] = true
+		}
 	}
 
 	return conf

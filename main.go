@@ -18,6 +18,8 @@ const (
 
 var (
 	conf InletHTTPAPIConfig
+
+	proxyAPI = make(map[string]bool)
 )
 
 func main() {
@@ -32,7 +34,8 @@ func main() {
 		inlet_http.SetGraphProvider(graphProvider),
 		inlet_http.SetResponseHandler(responseHandle),
 		inlet_http.SetErrorResponseHandler(errorResponseHandler),
-		inlet_http.SetRequestDecoder(requestDecoder))
+		inlet_http.SetRequestDecoder(requestDecoder),
+		inlet_http.SetRequestPayloadHook(requestPayloadHook))
 
 	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
@@ -63,6 +66,28 @@ func requestDecoder(data []byte) (ret map[string]interface{}, err error) {
 		err = json.Unmarshal(data, &ret)
 	}
 	return
+}
+
+func requestPayloadHook(r *http.Request, body []byte, payload *spirit.Payload) {
+	apiName := r.Header.Get(conf.HTTP.APIHeader)
+
+	if apiName == "" {
+		return
+	}
+
+	if proxyAPI != nil {
+		if isProxy, _ := proxyAPI[apiName]; isProxy {
+			newPayload := spirit.Payload{}
+
+			if e := newPayload.UnSerialize(body); e != nil {
+				logs.Error(e)
+			} else {
+				payload.CopyFrom(&newPayload)
+			}
+		}
+	}
+
+	payload.SetContext(conf.HTTP.APIHeader, apiName)
 }
 
 func optionHandle(w http.ResponseWriter, r *http.Request) {
