@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/gogap/logs"
 )
 
 type InletHTTPAPIConfig struct {
@@ -111,6 +113,8 @@ func loadIncludeFile(filename string, conf *InletHTTPAPIConfig) {
 		conf.Graphs = append(conf.Graphs, exConf.Graphs...)
 	}
 
+	logs.Info("config file loaded:", filename)
+
 	return
 }
 
@@ -145,6 +149,8 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		conf.HTTP.responseHeaders["Server"] = "spirit"
 	}
 
+	logs.Info("config file loaded:", filename)
+
 	//read include configs
 	if conf.IncludeConfigFiles != nil && len(conf.IncludeConfigFiles) > 0 {
 		for _, filename := range conf.IncludeConfigFiles {
@@ -155,8 +161,9 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 					panic(e)
 				} else {
 					for _, name := range names {
-						if filepath.Ext(name) == "conf" {
-							loadIncludeFile(name, &conf)
+						filename = strings.TrimRight(filename, "/")
+						if filepath.Ext(name) == ".conf" {
+							loadIncludeFile(filename+"/"+name, &conf)
 						}
 					}
 				}
