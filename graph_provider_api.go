@@ -42,7 +42,7 @@ func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphCon
 
 	for _, graph := range graphConf {
 		if apiName, exist := apiGraph[graph.API]; exist {
-			panic(fmt.Sprintf("api address already exist,api name: ", apiName))
+			panic(fmt.Sprintf("api address already exist,api name: %s", apiName))
 		} else {
 			addrs := []spirit.MessageAddress{}
 			for _, addrName := range graph.Graph {
