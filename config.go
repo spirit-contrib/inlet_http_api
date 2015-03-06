@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -78,6 +80,40 @@ func (p *HTTPConfig) allowHeaders() string {
 	return ""
 }
 
+func isFileOrDir(filename string, decideDir bool) bool {
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		return false
+	}
+	isDir := fileInfo.IsDir()
+	if decideDir {
+		return isDir
+	}
+	return !isDir
+}
+
+func loadIncludeFile(filename string, conf *InletHTTPAPIConfig) {
+
+	bFile, e := ioutil.ReadFile(filename)
+	if e != nil {
+		panic(e)
+	}
+	exConf := InletHTTPAPIConfig{}
+	if e = json.Unmarshal(bFile, &exConf); e != nil {
+		panic(e)
+	}
+
+	if exConf.Address != nil && len(exConf.Address) > 0 {
+		conf.Address = append(conf.Address, exConf.Address...)
+	}
+
+	if exConf.Graphs != nil && len(exConf.Graphs) > 0 {
+		conf.Graphs = append(conf.Graphs, exConf.Graphs...)
+	}
+
+	return
+}
+
 func LoadConfig(filename string) InletHTTPAPIConfig {
 	bFile, e := ioutil.ReadFile(filename)
 	if e != nil {
@@ -109,30 +145,30 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		conf.HTTP.responseHeaders["Server"] = "spirit"
 	}
 
-	for _, graph := range conf.Graphs {
-		if graph.IsProxy {
-			proxyAPI[graph.API] = true
+	//read include configs
+	if conf.IncludeConfigFiles != nil && len(conf.IncludeConfigFiles) > 0 {
+		for _, filename := range conf.IncludeConfigFiles {
+			if isFileOrDir(filename, true) {
+				if f, e := os.Open(filename); e != nil {
+					panic(e)
+				} else if names, e := f.Readdirnames(-1); e != nil {
+					panic(e)
+				} else {
+					for _, name := range names {
+						if filepath.Ext(name) == "conf" {
+							loadIncludeFile(name, &conf)
+						}
+					}
+				}
+			} else {
+				loadIncludeFile(filename, &conf)
+			}
 		}
 	}
 
-	//read include configs
-	if conf.IncludeConfigFiles != nil && len(conf.IncludeConfigFiles) > 0 {
-		for _, configFile := range conf.IncludeConfigFiles {
-			bFile, e := ioutil.ReadFile(configFile)
-			if e != nil {
-				panic(e)
-			}
-			exConf := InletHTTPAPIConfig{}
-			if e = json.Unmarshal(bFile, &exConf); e != nil {
-				panic(e)
-			}
-
-			if exConf.Graphs != nil && len(exConf.Graphs) > 0 {
-				conf.Graphs = append(conf.Graphs, exConf.Graphs...)
-			}
-			if exConf.Address != nil && len(exConf.Address) > 0 {
-				conf.Address = append(conf.Address, exConf.Address...)
-			}
+	for _, graph := range conf.Graphs {
+		if graph.IsProxy {
+			proxyAPI[graph.API] = true
 		}
 	}
 
