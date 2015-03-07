@@ -117,8 +117,7 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 			Result:         nil,
 		}
 	}
-	w.WriteHeader(http.StatusInternalServerError)
-	writeResponse(&resp, w, r)
+	writeErrorResponse(&resp, w, r, http.StatusInternalServerError)
 }
 
 func responseHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request) {
@@ -146,8 +145,7 @@ func errorHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request)
 		Result:         nil,
 	}
 
-	w.WriteHeader(http.StatusInternalServerError)
-	writeResponse(&resp, w, r)
+	writeErrorResponse(&resp, w, r, http.StatusInternalServerError)
 }
 
 func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {
@@ -162,6 +160,21 @@ func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {
 		writeBasicHeaders(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(data)
+	}
+}
+
+func writeErrorResponse(v interface{}, w http.ResponseWriter, r *http.Request, code int) {
+	if data, e := json.Marshal(v); e != nil {
+		err := ERR_MARSHAL_STRUCT_ERROR.New(errors.Params{"err": e})
+		logs.Error(err)
+		if _, ok := v.(error); !ok {
+			writeErrorResponse(&err, w, r, code)
+		}
+	} else {
+		writeAccessHeaders(w, r)
+		writeBasicHeaders(w, r)
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, string(data), code)
 	}
 }
 
