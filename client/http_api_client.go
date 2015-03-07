@@ -76,7 +76,7 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 		if tmpResp.Code == 0 {
 			return
 		} else {
-			err = ERR_API_CLIENT_ERROR_MESSAGE.New(errors.Params{"api": apiName, "url": p.url, "code": tmpResp.Code, "message": tmpResp.Message, "err_id": tmpResp.ErrorId, "err_namespace": tmpResp.ErrorNamespace})
+			err = errors.NewErrorCode(tmpResp.ErrorId, tmpResp.Code, tmpResp.ErrorNamespace, tmpResp.Message, "", nil)
 			return
 		}
 	}
