@@ -117,7 +117,16 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 			Result:         nil,
 		}
 	}
-	writeErrorResponse(&resp, w, r, http.StatusInternalServerError)
+
+	statusCode := http.StatusInternalServerError
+
+	if ERR_API_GRAPH_IS_NOT_EXIST.IsEqual(err) {
+		statusCode = http.StatusNotFound
+	} else if inlet_http.ERR_REQUEST_TIMEOUT.IsEqual(err) {
+		statusCode = http.StatusRequestTimeout
+	}
+
+	writeErrorResponse(&resp, w, r, statusCode)
 }
 
 func responseHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request) {
