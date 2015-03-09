@@ -154,7 +154,7 @@ func errorHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request)
 		Result:         nil,
 	}
 
-	writeErrorResponse(&resp, w, r, http.StatusInternalServerError)
+	writeErrorResponse(&resp, w, r, http.StatusOK)
 }
 
 func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {
