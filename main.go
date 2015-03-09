@@ -99,6 +99,16 @@ func optionHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
+	statusCode := http.StatusInternalServerError
+
+	if ERR_API_GRAPH_IS_NOT_EXIST.IsEqual(err) {
+		statusCode = http.StatusNotFound
+	} else if inlet_http.ERR_REQUEST_TIMEOUT.IsEqual(err) {
+		statusCode = http.StatusRequestTimeout
+		apiName := r.Header.Get(conf.HTTP.APIHeader)
+		err = ERR_API_REQUEST_TIMEOUT.New(errors.Params{"api": apiName})
+	}
+
 	var resp APIResponse
 	if errCode, ok := err.(errors.ErrCode); ok {
 		resp = APIResponse{
@@ -116,14 +126,6 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 			Message:        err.Error(),
 			Result:         nil,
 		}
-	}
-
-	statusCode := http.StatusInternalServerError
-
-	if ERR_API_GRAPH_IS_NOT_EXIST.IsEqual(err) {
-		statusCode = http.StatusNotFound
-	} else if inlet_http.ERR_REQUEST_TIMEOUT.IsEqual(err) {
-		statusCode = http.StatusRequestTimeout
 	}
 
 	writeErrorResponse(&resp, w, r, statusCode)
