@@ -189,7 +189,11 @@ func responseHandle(payloads map[string]spirit.Payload, errs map[string]error, w
 				}
 			}
 		}
-		writeResponse(&multiResp, w, r)
+		resp := APIResponse{
+			Code:   0,
+			Result: multiResp,
+		}
+		writeResponse(&resp, w, r)
 		return
 	}
 
