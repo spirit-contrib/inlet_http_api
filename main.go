@@ -35,7 +35,8 @@ func main() {
 		inlet_http.SetResponseHandler(responseHandle),
 		inlet_http.SetErrorResponseHandler(errorResponseHandler),
 		inlet_http.SetRequestDecoder(requestDecoder),
-		inlet_http.SetRequestPayloadHook(requestPayloadHook))
+		inlet_http.SetRequestPayloadHook(requestPayloadHook),
+		inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT))
 
 	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
@@ -68,10 +69,22 @@ func requestDecoder(data []byte) (ret map[string]interface{}, err error) {
 	return
 }
 
-func requestPayloadHook(r *http.Request, body []byte, payload *spirit.Payload) {
-	apiName := r.Header.Get(conf.HTTP.APIHeader)
+func requestPayloadHook(r *http.Request, apiName string, body []byte, payload *spirit.Payload) (err error) {
+	if r.Header.Get(MULTI_CALL) == "1" {
+		multiAPIReq := map[string]interface{}{}
+		if e := json.Unmarshal(body, &multiAPIReq); e != nil {
+			err = ERR_UNMARSHAL_MULTI_REQUEST_FAILED.New(errors.Params{"err": e, "api": apiName})
+			return
+		} else if reqContent, exist := multiAPIReq[apiName]; exist {
+			payload.SetContent(reqContent)
+		} else {
+			err = ERR_MULTI_API_REQUEST_NOT_EXIST.New(errors.Params{"api": apiName})
+			return
+		}
+	}
 
 	if apiName == "" {
+		err = ERR_API_NAME_IS_EMPTY.New()
 		return
 	}
 
@@ -80,7 +93,9 @@ func requestPayloadHook(r *http.Request, body []byte, payload *spirit.Payload) {
 			newPayload := spirit.Payload{}
 
 			if e := newPayload.UnSerialize(body); e != nil {
-				logs.Error(e)
+				err = ERR_PARSE_PROXY_PAYLOAD_FIALED.New(errors.Params{"api": apiName, "err": e})
+				logs.Error(err)
+				return
 			} else {
 				payload.CopyFrom(&newPayload)
 			}
@@ -88,6 +103,8 @@ func requestPayloadHook(r *http.Request, body []byte, payload *spirit.Payload) {
 	}
 
 	payload.SetContext(conf.HTTP.APIHeader, apiName)
+
+	return
 }
 
 func optionHandle(w http.ResponseWriter, r *http.Request) {
@@ -128,64 +145,137 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeErrorResponse(&resp, w, r, statusCode)
+	writeResponseWithStatusCode(&resp, w, r, statusCode)
 }
 
-func responseHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request) {
-	if payload.IsCorrect() {
-		correctHandle(payload, w, r)
-	} else {
-		errorHandle(payload, w, r)
+func responseHandle(payloads map[string]spirit.Payload, errs map[string]error, w http.ResponseWriter, r *http.Request) {
+	//TODO: improve handle logic
+	//X-X-API-MULTI-CALL PROCESS
+	if r.Header.Get(MULTI_CALL) == "1" {
+		multiResp := map[string]APIResponse{}
+		for apiName, payload := range payloads {
+			if payload.IsCorrect() {
+				multiResp[apiName] = APIResponse{
+					Code:   payload.Error().Code,
+					Result: payload.GetContent(),
+				}
+			} else {
+				multiResp[apiName] = APIResponse{
+					Code:           payload.Error().Code,
+					ErrorId:        payload.Error().Id,
+					ErrorNamespace: payload.Error().Namespace,
+					Message:        payload.Error().Message,
+					Result:         nil,
+				}
+			}
+		}
+
+		for apiName, err := range errs {
+			if errCode, ok := err.(errors.ErrCode); ok {
+				multiResp[apiName] = APIResponse{
+					Code:           errCode.Code(),
+					ErrorId:        errCode.Id(),
+					ErrorNamespace: errCode.Namespace(),
+					Message:        errCode.Error(),
+					Result:         nil,
+				}
+			} else {
+				multiResp[apiName] = APIResponse{
+					Code:           500,
+					ErrorId:        "",
+					ErrorNamespace: INLET_HTTP_API_ERR_NS,
+					Message:        err.Error(),
+					Result:         nil,
+				}
+			}
+		}
+		writeResponse(&multiResp, w, r)
+		return
 	}
-}
 
-func correctHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request) {
-	resp := APIResponse{
-		Code:   payload.Error().Code,
-		Result: payload.GetContent(),
+	lenPayload := len(payloads)
+	lenErr := len(errs)
+
+	var resp APIResponse
+	if lenPayload+lenErr == 1 {
+		if lenPayload == 1 {
+			for _, payload := range payloads {
+				if payload.IsCorrect() {
+					resp = APIResponse{
+						Code:   payload.Error().Code,
+						Result: payload.GetContent(),
+					}
+				} else {
+					resp = APIResponse{
+						Code:           payload.Error().Code,
+						ErrorId:        payload.Error().Id,
+						ErrorNamespace: payload.Error().Namespace,
+						Message:        payload.Error().Message,
+						Result:         nil,
+					}
+				}
+			}
+		} else if lenErr == 1 {
+			for _, err := range errs {
+				if errCode, ok := err.(errors.ErrCode); ok {
+					resp = APIResponse{
+						Code:           errCode.Code(),
+						ErrorId:        errCode.Id(),
+						ErrorNamespace: errCode.Namespace(),
+						Message:        errCode.Error(),
+						Result:         nil,
+					}
+				} else {
+					resp = APIResponse{
+						Code:           500,
+						ErrorId:        "",
+						ErrorNamespace: INLET_HTTP_API_ERR_NS,
+						Message:        err.Error(),
+						Result:         nil,
+					}
+				}
+			}
+		}
+	} else {
+		err := ERR_PAYLOAD_RESPONSE_COUNT_NOT_MATCH.New()
+		if errCode, ok := err.(errors.ErrCode); ok {
+			resp = APIResponse{
+				Code:           errCode.Code(),
+				ErrorId:        errCode.Id(),
+				ErrorNamespace: errCode.Namespace(),
+				Message:        errCode.Error(),
+				Result:         nil,
+			}
+		} else {
+			resp = APIResponse{
+				Code:           500,
+				ErrorId:        "",
+				ErrorNamespace: INLET_HTTP_API_ERR_NS,
+				Message:        err.Error(),
+				Result:         nil,
+			}
+		}
 	}
 	writeResponse(&resp, w, r)
 }
 
-func errorHandle(payload spirit.Payload, w http.ResponseWriter, r *http.Request) {
-	resp := APIResponse{
-		Code:           payload.Error().Code,
-		ErrorId:        payload.Error().Id,
-		ErrorNamespace: payload.Error().Namespace,
-		Message:        payload.Error().Message,
-		Result:         nil,
-	}
-
-	writeErrorResponse(&resp, w, r, http.StatusOK)
-}
-
 func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {
-	if data, e := json.Marshal(v); e != nil {
-		err := ERR_MARSHAL_STRUCT_ERROR.New(errors.Params{"err": e})
-		logs.Error(err)
-		if _, ok := v.(error); !ok {
-			writeResponse(&err, w, r)
-		}
-	} else {
-		writeAccessHeaders(w, r)
-		writeBasicHeaders(w, r)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
-	}
+	writeResponseWithStatusCode(v, w, r, http.StatusOK)
 }
 
-func writeErrorResponse(v interface{}, w http.ResponseWriter, r *http.Request, code int) {
+func writeResponseWithStatusCode(v interface{}, w http.ResponseWriter, r *http.Request, code int) {
 	if data, e := json.Marshal(v); e != nil {
 		err := ERR_MARSHAL_STRUCT_ERROR.New(errors.Params{"err": e})
 		logs.Error(err)
 		if _, ok := v.(error); !ok {
-			writeErrorResponse(&err, w, r, code)
+			writeResponseWithStatusCode(&err, w, r, code)
 		}
 	} else {
 		writeAccessHeaders(w, r)
 		writeBasicHeaders(w, r)
 		w.Header().Set("Content-Type", "application/json")
-		http.Error(w, string(data), code)
+		w.WriteHeader(code)
+		w.Write(data)
 	}
 }
 

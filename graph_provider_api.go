@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +14,9 @@ import (
 const (
 	API_HEADER  = "X-API"
 	METHOD_POST = "POST"
+
+	MULTI_CALL       = "X-API-MULTI-CALL"
+	API_CALL_TIMEOUT = "X-API-CALL-TIMEOUT"
 )
 
 type APIGraphProvider struct {
@@ -83,25 +87,55 @@ func (p *APIGraphProvider) SetGraph(apiName string, graph spirit.MessageGraph) i
 	return p
 }
 
-func (p *APIGraphProvider) GetGraph(r *http.Request) (graph spirit.MessageGraph, err error) {
+func (p *APIGraphProvider) GetGraph(r *http.Request, body []byte) (graphs map[string]spirit.MessageGraph, err error) {
 	if r.Method != METHOD_POST {
 		err = ERR_METHOD_IS_NOT_POST.New(errors.Params{"method": r.Method})
 		return
 	}
 
-	apiName := r.Header.Get(p.APIHeader)
-	apiName = strings.TrimSpace(apiName)
+	apiGraphs := map[string]spirit.MessageGraph{}
 
-	if apiName == "" {
-		err = ERR_API_NAME_IS_EMPTY.New()
+	appendFunc := func(apiName string) (err error) {
+		apiName = strings.TrimSpace(apiName)
+
+		if apiName == "" {
+			err = ERR_API_NAME_IS_EMPTY.New()
+			return
+		}
+
+		if apiGraph, exist := p.apiGraph[apiName]; !exist {
+			err = ERR_API_GRAPH_IS_NOT_EXIST.New(errors.Params{"api": apiName})
+			return
+		} else {
+			apiGraphs[apiName] = apiGraph
+		}
 		return
 	}
 
-	if apiGraph, exist := p.apiGraph[apiName]; !exist {
-		err = ERR_API_GRAPH_IS_NOT_EXIST.New(errors.Params{"api": apiName})
-		return
+	if r.Header.Get(MULTI_CALL) == "1" {
+		apiParams := map[string]interface{}{}
+		if e := json.Unmarshal(body, &apiParams); e != nil {
+			err = ERR_UNMARSHAL_MULTI_REQUEST_BODY_FAILED.New(errors.Params{"err": e})
+		} else if len(apiParams) > 0 {
+			for apiName, _ := range apiParams {
+				if err = appendFunc(apiName); err != nil {
+					return
+				}
+			}
+		} else {
+			err = ERR_EMPTY_MULTI_API_REQUEST.New()
+			return
+		}
 	} else {
-		graph = apiGraph
+		apiName := r.Header.Get(p.APIHeader)
+		apiName = strings.TrimSpace(apiName)
+
+		if err = appendFunc(apiName); err != nil {
+			return
+		}
 	}
+
+	graphs = apiGraphs
+
 	return
 }
