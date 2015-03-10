@@ -127,7 +127,7 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 	// }
 
 	//for temp support client side to receive
-	statusCode = http.StatusOK
+	statusCode := http.StatusOK
 
 	var resp APIResponse
 	if errCode, ok := err.(errors.ErrCode); ok {
