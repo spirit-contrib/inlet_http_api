@@ -151,30 +151,14 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 	writeResponseWithStatusCode(&resp, w, r, statusCode)
 }
 
-func responseHandle(payloads map[string]spirit.Payload, errs map[string]error, w http.ResponseWriter, r *http.Request) {
+func responseHandle(graphsResponse map[string]inlet_http.GraphResponse, w http.ResponseWriter, r *http.Request) {
 	//TODO: improve handle logic
 	//X-X-API-MULTI-CALL PROCESS
-	if r.Header.Get(MULTI_CALL) == "1" {
-		multiResp := map[string]APIResponse{}
-		for apiName, payload := range payloads {
-			if payload.IsCorrect() {
-				multiResp[apiName] = APIResponse{
-					Code:   payload.Error().Code,
-					Result: payload.GetContent(),
-				}
-			} else {
-				multiResp[apiName] = APIResponse{
-					Code:           payload.Error().Code,
-					ErrorId:        payload.Error().Id,
-					ErrorNamespace: payload.Error().Namespace,
-					Message:        payload.Error().Message,
-					Result:         nil,
-				}
-			}
-		}
 
-		for apiName, err := range errs {
-			if errCode, ok := err.(errors.ErrCode); ok {
+	multiResp := map[string]APIResponse{}
+	for apiName, graphResponse := range graphsResponse {
+		if graphResponse.Error != nil {
+			if errCode, ok := graphResponse.Error.(errors.ErrCode); ok {
 				multiResp[apiName] = APIResponse{
 					Code:           errCode.Code(),
 					ErrorId:        errCode.Id(),
@@ -187,11 +171,27 @@ func responseHandle(payloads map[string]spirit.Payload, errs map[string]error, w
 					Code:           500,
 					ErrorId:        "",
 					ErrorNamespace: INLET_HTTP_API_ERR_NS,
-					Message:        err.Error(),
+					Message:        graphResponse.Error.Error(),
 					Result:         nil,
 				}
 			}
+		} else if graphResponse.RespPayload.IsCorrect() {
+			multiResp[apiName] = APIResponse{
+				Code:   graphResponse.RespPayload.Error().Code,
+				Result: graphResponse.RespPayload.GetContent(),
+			}
+		} else {
+			multiResp[apiName] = APIResponse{
+				Code:           graphResponse.RespPayload.Error().Code,
+				ErrorId:        graphResponse.RespPayload.Error().Id,
+				ErrorNamespace: graphResponse.RespPayload.Error().Namespace,
+				Message:        graphResponse.RespPayload.Error().Message,
+				Result:         nil,
+			}
 		}
+	}
+
+	if r.Header.Get(MULTI_CALL) == "1" {
 		resp := APIResponse{
 			Code:   0,
 			Result: multiResp,
@@ -200,70 +200,28 @@ func responseHandle(payloads map[string]spirit.Payload, errs map[string]error, w
 		return
 	}
 
-	lenPayload := len(payloads)
-	lenErr := len(errs)
+	lenGraphsResponse := len(graphsResponse)
 
-	var resp APIResponse
-	if lenPayload+lenErr == 1 {
-		if lenPayload == 1 {
-			for _, payload := range payloads {
-				if payload.IsCorrect() {
-					resp = APIResponse{
-						Code:   payload.Error().Code,
-						Result: payload.GetContent(),
-					}
-				} else {
-					resp = APIResponse{
-						Code:           payload.Error().Code,
-						ErrorId:        payload.Error().Id,
-						ErrorNamespace: payload.Error().Namespace,
-						Message:        payload.Error().Message,
-						Result:         nil,
-					}
-				}
-			}
-		} else if lenErr == 1 {
-			for _, err := range errs {
-				if errCode, ok := err.(errors.ErrCode); ok {
-					resp = APIResponse{
-						Code:           errCode.Code(),
-						ErrorId:        errCode.Id(),
-						ErrorNamespace: errCode.Namespace(),
-						Message:        errCode.Error(),
-						Result:         nil,
-					}
-				} else {
-					resp = APIResponse{
-						Code:           500,
-						ErrorId:        "",
-						ErrorNamespace: INLET_HTTP_API_ERR_NS,
-						Message:        err.Error(),
-						Result:         nil,
-					}
-				}
-			}
-		}
-	} else {
+	//response count is did not equal 1
+	if lenGraphsResponse != 1 {
 		err := ERR_PAYLOAD_RESPONSE_COUNT_NOT_MATCH.New()
-		if errCode, ok := err.(errors.ErrCode); ok {
-			resp = APIResponse{
-				Code:           errCode.Code(),
-				ErrorId:        errCode.Id(),
-				ErrorNamespace: errCode.Namespace(),
-				Message:        errCode.Error(),
-				Result:         nil,
-			}
-		} else {
-			resp = APIResponse{
-				Code:           500,
-				ErrorId:        "",
-				ErrorNamespace: INLET_HTTP_API_ERR_NS,
-				Message:        err.Error(),
-				Result:         nil,
-			}
+		errCode, _ := err.(errors.ErrCode)
+		resp := APIResponse{
+			Code:           errCode.Code(),
+			ErrorId:        errCode.Id(),
+			ErrorNamespace: errCode.Namespace(),
+			Message:        errCode.Error(),
+			Result:         nil,
 		}
+
+		writeResponse(&resp, w, r)
+		return
 	}
-	writeResponse(&resp, w, r)
+
+	for _, resp := range multiResp {
+		writeResponse(&resp, w, r)
+		return
+	}
 }
 
 func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {
