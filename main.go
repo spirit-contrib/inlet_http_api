@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-martini/martini"
 	"github.com/gogap/errors"
 	"github.com/gogap/logs"
 	"github.com/gogap/spirit"
@@ -27,7 +28,11 @@ func main() {
 
 	graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
 
-	httpConf := inlet_http.Config{Address: conf.HTTP.Address, Domain: conf.HTTP.CookiesDomain}
+	httpConf := inlet_http.Config{
+		Address:    conf.HTTP.Address,
+		Domain:     conf.HTTP.CookiesDomain,
+		EnableStat: conf.HTTP.EnableStat,
+	}
 
 	inletHTTP := inlet_http.NewInletHTTP(
 		inlet_http.SetHTTPConfig(httpConf),
@@ -48,7 +53,11 @@ func main() {
 
 	inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
 
-	go inletHTTP.Run(optionHandle)
+	go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+		r.Post("", inletHTTP.Handler)
+		r.Options("", optionHandle)
+	})
+
 	httpAPISpirit.Run()
 }
 

@@ -23,9 +23,11 @@ type HTTPConfig struct {
 	Server        string   `json:"server"`
 	APIHeader     string   `json:"api_header"`
 	CookiesDomain string   `json:"cookies_domain"`
+	EnableStat    bool     `json:"enable_stat"`
 	P3P           string   `json:"p3p"`
 	AllowOrigins  []string `json:"allow_origins"`
 	AllowHeaders  []string `json:"allow_headers"`
+	PATH          string   `json:"path"`
 
 	allowOrigins    map[string]bool   `json:"-"`
 	responseHeaders map[string]string `json:"-"`
