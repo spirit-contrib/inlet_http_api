@@ -24,41 +24,45 @@ var (
 )
 
 func main() {
-	conf = LoadConfig("./conf/inlet_http_api.conf")
-
-	graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
-
-	httpConf := inlet_http.Config{
-		Address:    conf.HTTP.Address,
-		Domain:     conf.HTTP.CookiesDomain,
-		EnableStat: conf.HTTP.EnableStat,
-	}
-
-	inletHTTP := inlet_http.NewInletHTTP(
-		inlet_http.SetHTTPConfig(httpConf),
-		inlet_http.SetGraphProvider(graphProvider),
-		inlet_http.SetResponseHandler(responseHandle),
-		inlet_http.SetErrorResponseHandler(errorResponseHandler),
-		inlet_http.SetRequestDecoder(requestDecoder),
-		inlet_http.SetRequestPayloadHook(requestPayloadHook),
-		inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT))
 
 	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
 
+	inletHTTP := inlet_http.NewInletHTTP()
+
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
 	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
 
-	httpAPISpirit.Hosting(httpAPIComponent).Build()
+	funcStartInletHTTP := func() error {
+		conf = LoadConfig("./conf/inlet_http_api.conf")
 
-	inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
+		graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
 
-	go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
-		r.Post("", inletHTTP.Handler)
-		r.Options("", optionHandle)
-	})
+		httpConf := inlet_http.Config{
+			Address:    conf.HTTP.Address,
+			Domain:     conf.HTTP.CookiesDomain,
+			EnableStat: conf.HTTP.EnableStat,
+		}
 
-	httpAPISpirit.Run()
+		inletHTTP.Option(inlet_http.SetHTTPConfig(httpConf),
+			inlet_http.SetGraphProvider(graphProvider),
+			inlet_http.SetResponseHandler(responseHandle),
+			inlet_http.SetErrorResponseHandler(errorResponseHandler),
+			inlet_http.SetRequestDecoder(requestDecoder),
+			inlet_http.SetRequestPayloadHook(requestPayloadHook),
+			inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT))
+
+		inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
+
+		go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+			r.Post("", inletHTTP.Handler)
+			r.Options("", optionHandle)
+		})
+
+		return nil
+	}
+
+	httpAPISpirit.Hosting(httpAPIComponent).Build().Run(funcStartInletHTTP)
 }
 
 type APIResponse struct {
