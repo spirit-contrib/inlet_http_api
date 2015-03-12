@@ -33,8 +33,8 @@ func main() {
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
 	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
 
-	funcStartInletHTTP := func() error {
-		conf = LoadConfig("./conf/inlet_http_api.conf")
+	funcStartInletHTTP := func(configFile string) error {
+		conf = LoadConfig(configFile)
 
 		graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
 
