@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -100,10 +101,12 @@ func loadIncludeFile(filename string, conf *InletHTTPAPIConfig) {
 
 	bFile, e := ioutil.ReadFile(filename)
 	if e != nil {
+		e = fmt.Errorf("read config file of %s failed, error: %s", filename, e)
 		panic(e)
 	}
 	exConf := InletHTTPAPIConfig{}
 	if e = json.Unmarshal(bFile, &exConf); e != nil {
+		e = fmt.Errorf("unmarshal config file of %s to object failed, error: %s", filename, e)
 		panic(e)
 	}
 
@@ -128,6 +131,7 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 
 	conf := InletHTTPAPIConfig{}
 	if e = json.Unmarshal(bFile, &conf); e != nil {
+		e = fmt.Errorf("unmarshal config file of %s to object failed, error: %s", filename, e)
 		panic(e)
 	}
 
