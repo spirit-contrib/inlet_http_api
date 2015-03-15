@@ -1,0 +1,23 @@
+api:
+  build: .
+  ports:
+    - "8081:8081"
+  environment:
+   - VIRTUAL_HOST=boot2docker
+   - MARTINI_ENV=development
+   - SPIRIT_ENV=./conf/spirit.env
+  volumes:
+   - conf/:conf/
+  command: inlet_http_api run --name inlet_http_api -a 'port.callback|callback|mqs|{{.access_key_id}}:{{.acces_key_secert}}@http://{{.owner_id}}.{{.mqs_url}}/{{.queue_callback}}' -a 'port.api.error|error|mqs|{{.access_key_id}}:{{.acces_key_secert}}@http://{{.owner_id}}.{{.mqs_url}}/{{.queue_error}}'
+  links:
+  - nginx
+nginx:
+ image: jwilder/nginx-proxy
+ ports:
+  - "80:80"
+  - "443:443"
+ volumes:
+  - nginx/:/etc/nginx/conf.d/
+  - certs/:/etc/nginx/certs/
+  - /var/run/docker.sock:/tmp/docker.sock
+   

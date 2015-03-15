@@ -11,7 +11,7 @@
         "allow_origins": ["*"],
         "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept", "X-API-MULTI-CALL", "X-API-CALL-TIMEOUT"]
     },
-    "include_config_files":["./conf/test.conf"],
+    "include_config_files":[],
     "address": [{
         "name": "port.new_task",
         "type": "mqs",
