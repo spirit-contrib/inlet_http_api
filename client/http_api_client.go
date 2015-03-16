@@ -68,17 +68,18 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 
 	if v != nil {
 		tmpResp.Result = v
-		if e := json.Unmarshal([]byte(body), &tmpResp); e != nil {
-			err = ERR_API_CLIENT_RESPONSE_UNMARSHAL_FAILED.New(errors.Params{"api": apiName, "url": p.url, "err": e})
-			return
-		}
+	}
 
-		if tmpResp.Code == 0 {
-			return
-		} else {
-			err = errors.NewErrorCode(tmpResp.ErrorId, tmpResp.Code, tmpResp.ErrorNamespace, tmpResp.Message, "", nil)
-			return
-		}
+	if e := json.Unmarshal([]byte(body), &tmpResp); e != nil {
+		err = ERR_API_CLIENT_RESPONSE_UNMARSHAL_FAILED.New(errors.Params{"api": apiName, "url": p.url, "err": e})
+		return
+	}
+
+	if tmpResp.Code == 0 {
+		return
+	} else {
+		err = errors.NewErrorCode(tmpResp.ErrorId, tmpResp.Code, tmpResp.ErrorNamespace, tmpResp.Message, "", nil)
+		return
 	}
 
 	return
