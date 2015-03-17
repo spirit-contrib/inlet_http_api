@@ -58,10 +58,17 @@ func main() {
 
 		inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
 
-		go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
-			r.Post("", inletHTTP.Handler)
-			r.Options("", optionHandle)
-		})
+		if httpConf.EnableStat {
+			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+				r.Post("", inletHTTP.Handler)
+				r.Options("", optionHandle)
+			}, martini.Static("static"))
+		} else {
+			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+				r.Post("", inletHTTP.Handler)
+				r.Options("", optionHandle)
+			})
+		}
 
 		return nil
 	}
