@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -9,8 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gogap/env_json"
 	"github.com/gogap/logs"
 )
+
+const INLET_HTTP_API_ENV = "INLET_HTTP_API_ENV"
 
 type InletHTTPAPIConfig struct {
 	HTTP               HTTPConfig      `json:"http"`
@@ -105,7 +107,10 @@ func loadIncludeFile(filename string, conf *InletHTTPAPIConfig) {
 		panic(e)
 	}
 	exConf := InletHTTPAPIConfig{}
-	if e = json.Unmarshal(bFile, &exConf); e != nil {
+
+	envJson := env_json.NewEnvJson(INLET_HTTP_API_ENV, env_json.ENV_JSON_EXT)
+
+	if e = envJson.Unmarshal(bFile, &exConf); e != nil {
 		e = fmt.Errorf("unmarshal config file of %s to object failed, error: %s", filename, e)
 		panic(e)
 	}
@@ -130,7 +135,10 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 	}
 
 	conf := InletHTTPAPIConfig{}
-	if e = json.Unmarshal(bFile, &conf); e != nil {
+
+	envJson := env_json.NewEnvJson(INLET_HTTP_API_ENV, env_json.ENV_JSON_EXT)
+
+	if e = envJson.Unmarshal(bFile, &conf); e != nil {
 		e = fmt.Errorf("unmarshal config file of %s to object failed, error: %s", filename, e)
 		panic(e)
 	}
