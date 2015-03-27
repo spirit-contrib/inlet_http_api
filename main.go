@@ -24,6 +24,7 @@ var (
 )
 
 func main() {
+	logs.SetFileLogger("./logs/inlet_http_api.log")
 
 	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
