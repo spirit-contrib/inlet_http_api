@@ -24,9 +24,17 @@ var (
 )
 
 func main() {
-	logs.SetFileLogger("./logs/inlet_http_api.log")
+	logs.SetFileLogger("logs/inlet_http_api.log")
 
-	httpAPISpirit := spirit.NewClassicSpirit(SPIRIT_NAME, "an http inlet with POST request", "1.0.0")
+	httpAPISpirit := spirit.NewClassicSpirit(
+		SPIRIT_NAME,
+		"an http inlet with POST request",
+		"1.0.0",
+		[]spirit.Author{
+			{Name: "zeal", Email: "xujinzheng@gmail.com"},
+		},
+	)
+
 	httpAPIComponent := spirit.NewBaseComponent(SPIRIT_NAME)
 
 	inletHTTP := inlet_http.NewInletHTTP()
@@ -34,12 +42,8 @@ func main() {
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
 	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
 
-	funcStartInletHTTP := func(configFile string) error {
-		if configFile == "" {
-			configFile = "./conf/inlet_http_api.conf"
-		}
-
-		conf = LoadConfig(configFile)
+	funcStartInletHTTP := func() error {
+		conf = LoadConfig("conf/inlet_http_api.conf")
 
 		graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
 
@@ -57,7 +61,7 @@ func main() {
 			inlet_http.SetRequestPayloadHook(requestPayloadHook),
 			inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT))
 
-		inletHTTP.Requester().SetMessageSenderFactory(httpAPISpirit.GetMessageSenderFactory())
+		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
 		if httpConf.EnableStat {
 			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
@@ -75,7 +79,7 @@ func main() {
 		return nil
 	}
 
-	httpAPISpirit.Hosting(httpAPIComponent).Build().Run(funcStartInletHTTP)
+	httpAPISpirit.Hosting(httpAPIComponent, funcStartInletHTTP).Build().Run()
 }
 
 type APIResponse struct {
