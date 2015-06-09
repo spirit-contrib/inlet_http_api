@@ -68,7 +68,8 @@ func main() {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
 			}, martini.Static("stat"),
-				martini.Static("ping"))
+				martini.Static("ping"),
+				martini.Static("xdomain"))
 		} else {
 			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
