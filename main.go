@@ -74,7 +74,8 @@ func main() {
 			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
-			})
+			}, martini.Static("ping"),
+				martini.Static("xdomain"))
 		}
 
 		return nil
@@ -94,8 +95,13 @@ type APIResponse struct {
 func requestDecoder(data []byte) (ret map[string]interface{}, err error) {
 	str := strings.TrimSpace(string(data))
 	if str != "" {
+		decoder := json.NewDecoder(strings.NewReader(str))
+		decoder.UseNumber()
 		ret = make(map[string]interface{})
-		err = json.Unmarshal(data, &ret)
+
+		if err = decoder.Decode(&ret); err != nil {
+			return
+		}
 	}
 	return
 }
