@@ -1,0 +1,10 @@
+{
+    "OKMessage": {
+        "api.task.new": "this is an ok message while api response correct"
+    },
+    "ErrorMessage": {
+        "SPIRIT": {
+            "5": "hello error"
+        }
+    }
+}

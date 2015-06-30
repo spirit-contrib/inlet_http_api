@@ -1,0 +1,14 @@
+{
+	"code":{{.API.Response.Code}},
+	{{$strRespCode:= .API.Response.Code|toStr}}
+	{{if ne .API.Response.ErrorId ""}}"error_id":"{{.API.Response.ErrorId}}",{{end}}
+	{{if ne .API.Response.ErrorNamespace ""}}"error_namespace":"{{.API.Response.ErrorNamespace}}",{{end}}
+	{{if and (eq .API.Response.Code 0) (index .Vars.OKMessage .API.Name)}}
+		"message":"{{index .Vars.OKMessage .API.Name}}",
+	{{else if and (gt .API.Response.Code 0) (index .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode)}}
+		"message":"{{index .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode}}",
+	{{else}}
+		"message":"{{.API.Response.Message}}",
+	{{end}}
+	"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+}

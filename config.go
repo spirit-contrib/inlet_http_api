@@ -16,6 +16,7 @@ const INLET_HTTP_API_ENV = "INLET_HTTP_API_ENV"
 
 type InletHTTPAPIConfig struct {
 	HTTP               HTTPConfig      `json:"http"`
+	Renderer           RendererConfig  `json:"renderer"`
 	IncludeConfigFiles []string        `json:"include_config_files"`
 	Address            []AddressConfig `json:"address"`
 	Graphs             []GraphsConfig  `json:"graphs"`
@@ -34,6 +35,13 @@ type HTTPConfig struct {
 
 	allowOrigins    map[string]bool   `json:"-"`
 	responseHeaders map[string]string `json:"-"`
+}
+
+type RendererConfig struct {
+	DefaultTemplate string              `json:"default_template"`
+	Templates       []string            `json:"templates"`
+	Variables       []string            `json:"variables"`
+	Relation        map[string][]string `json:"relation"`
 }
 
 type AddressConfig struct {

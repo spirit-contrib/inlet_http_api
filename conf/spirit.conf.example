@@ -1,0 +1,16 @@
+{
+    "components": [{
+        "name": "inlet_http_api",
+        "address": [{
+            "port_name": "inlet.api.callback",
+            "handler_name": "callback",
+            "type": "mqs",
+            "url": "http://access_key_id:acces_key_secert@owner_id.mqs-cn-beijing.aliyuncs.com/api-callback-srv001-001"
+        }, {
+            "port_name": "inlet.api.error",
+            "handler_name": "error",
+            "type": "mqs",
+            "url": "http://access_key_id:acces_key_secert@owner_id.mqs-cn-beijing.aliyuncs.com/api-error-srv001-001"
+        }]
+    }]
+}
