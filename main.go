@@ -23,6 +23,10 @@ var (
 	proxyAPI = make(map[string]bool)
 )
 
+var (
+	responseRenderer *APIResponseRenderer
+)
+
 func main() {
 	logs.SetFileLogger("logs/inlet_http_api.log")
 
@@ -63,6 +67,28 @@ func main() {
 
 		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
+		if e := responseRenderer.LoadTemplates(conf.Renderer.Templates...); e != nil {
+			panic(e)
+		}
+
+		if e := responseRenderer.SetDefaultTemplate(conf.Renderer.DefaultTemplate); e != nil {
+			panic(e)
+		}
+
+		if e := responseRenderer.LoadVariables(conf.Renderer.Variables...); e != nil {
+			panic(e)
+		}
+
+		if conf.Renderer.Relation != nil {
+			for name, apis := range conf.Renderer.Relation {
+				for _, api := range apis {
+					if e := responseRenderer.SetAPITemplate(api, name); e != nil {
+						panic(e)
+					}
+				}
+			}
+		}
+
 		if httpConf.EnableStat {
 			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
@@ -80,6 +106,8 @@ func main() {
 
 		return nil
 	}
+
+	responseRenderer = NewAPIResponseRenderer()
 
 	httpAPISpirit.Hosting(httpAPIComponent, funcStartInletHTTP).Build().Run()
 }
@@ -153,19 +181,6 @@ func optionHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
-	//statusCode := http.StatusInternalServerError
-
-	// if ERR_API_GRAPH_IS_NOT_EXIST.IsEqual(err) {
-	// 	statusCode = http.StatusNotFound
-	// } else if inlet_http.ERR_REQUEST_TIMEOUT.IsEqual(err) {
-	// 	statusCode = http.StatusRequestTimeout
-	// 	apiName := r.Header.Get(conf.HTTP.APIHeader)
-	// 	err = ERR_API_REQUEST_TIMEOUT.New(errors.Params{"api": apiName})
-	// }
-
-	//for temp support client side to receive
-	statusCode := http.StatusOK
-
 	var resp APIResponse
 	if errCode, ok := err.(errors.ErrCode); ok {
 		resp = APIResponse{
@@ -185,12 +200,26 @@ func errorResponseHandler(err error, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeResponseWithStatusCode(&resp, w, r, statusCode)
+	apiName := r.Header.Get(conf.HTTP.APIHeader)
+	if text, e := responseRenderer.Render(false, map[string]APIResponse{apiName: resp}); e != nil {
+		err := ERR_API_RESPONSE_REDNER_FAILED.New(errors.Params{"err": e})
+		eResp := APIResponse{
+			Code:           err.Code(),
+			ErrorId:        err.Id(),
+			ErrorNamespace: err.Namespace(),
+			Message:        err.Error(),
+			Result:         nil,
+		}
+		writeResponse(&eResp, w, r)
+		return
+	} else {
+		writeTextResponse(text, w, r)
+		return
+	}
 }
 
 func responseHandle(graphsResponse map[string]inlet_http.GraphResponse, w http.ResponseWriter, r *http.Request) {
-	//TODO: improve handle logic
-	//X-X-API-MULTI-CALL PROCESS
+	isMultiCall := r.Header.Get(MULTI_CALL) == "1"
 
 	multiResp := map[string]APIResponse{}
 	for apiName, graphResponse := range graphsResponse {
@@ -228,37 +257,29 @@ func responseHandle(graphsResponse map[string]inlet_http.GraphResponse, w http.R
 		}
 	}
 
-	if r.Header.Get(MULTI_CALL) == "1" {
+	if text, e := responseRenderer.Render(isMultiCall, multiResp); e != nil {
+		err := ERR_API_RESPONSE_REDNER_FAILED.New(errors.Params{"err": e})
 		resp := APIResponse{
-			Code:   0,
-			Result: multiResp,
-		}
-		writeResponse(&resp, w, r)
-		return
-	}
-
-	lenGraphsResponse := len(graphsResponse)
-
-	//response count is did not equal 1
-	if lenGraphsResponse != 1 {
-		err := ERR_PAYLOAD_RESPONSE_COUNT_NOT_MATCH.New()
-		errCode, _ := err.(errors.ErrCode)
-		resp := APIResponse{
-			Code:           errCode.Code(),
-			ErrorId:        errCode.Id(),
-			ErrorNamespace: errCode.Namespace(),
-			Message:        errCode.Error(),
+			Code:           err.Code(),
+			ErrorId:        err.Id(),
+			ErrorNamespace: err.Namespace(),
+			Message:        err.Error(),
 			Result:         nil,
 		}
-
 		writeResponse(&resp, w, r)
 		return
-	}
-
-	for _, resp := range multiResp {
-		writeResponse(&resp, w, r)
+	} else {
+		writeTextResponse(text, w, r)
 		return
 	}
+}
+
+func writeTextResponse(text string, w http.ResponseWriter, r *http.Request) {
+	writeAccessHeaders(w, r)
+	writeBasicHeaders(w, r)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(text))
 }
 
 func writeResponse(v interface{}, w http.ResponseWriter, r *http.Request) {

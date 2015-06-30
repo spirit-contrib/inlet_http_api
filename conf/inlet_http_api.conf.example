@@ -11,19 +11,25 @@
         "allow_origins": ["*"],
         "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept", "X-API-MULTI-CALL", "X-API-CALL-TIMEOUT"]
     },
+    "renderer":{
+        "default_template":"",
+        "templates":[],
+        "variables":["conf/render_vars.conf"],
+        "relation":{"api.tmpl":["api.task.new"]}
+    },
     "include_config_files":[],
     "address": [{
         "name": "port.new_task",
         "type": "mqs",
-        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/todo-task-new"
+        "url": "http://access_key_id:acces_key_secert@owner_id.mqs-cn-beijing.aliyuncs.com/todo-task-new"
     },{
         "name": "port.api.error",
         "type": "mqs",
-        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/api-error-srv001-001"
+        "url": "http://access_key_id:acces_key_secert@owner_id.mqs-cn-beijing.aliyuncs.com/api-error-srv001-001"
     },{
         "name": "port.api.callback",
         "type": "mqs",
-        "url": "access_key_id:acces_key_secert@http://owner_id.mqs-cn-beijing.aliyuncs.com/api-callback-srv001-001"
+        "url": "http://access_key_id:acces_key_secert@owner_id.mqs-cn-beijing.aliyuncs.com/api-callback-srv001-001"
     }],
     "graphs": [{
         "api": "api.task.new",
