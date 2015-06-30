@@ -241,7 +241,9 @@ func (p *APIResponseRenderer) Render(isMulti bool, response map[string]APIRespon
 	var buf bytes.Buffer
 
 	multiResponse := APIResponse{
-		Result: output,
+		Code:    0,
+		Message: "",
+		Result:  output,
 	}
 
 	multiRenderData := RenderData{

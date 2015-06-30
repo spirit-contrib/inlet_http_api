@@ -7,8 +7,24 @@
 		"message":"{{index .Vars.OKMessage .API.Name}}",
 	{{else if and (gt .API.Response.Code 0) (exist .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode)}}
 		"message":"{{index .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode}}",
-	{{else}}
+	{{else if .API.Response.Message}}
 		"message":"{{.API.Response.Message}}",
+	{{else}}
+		"message":"",
 	{{end}}
-	"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+	{{if .API.IsMulti}}
+		"result":{{if .API.Response.Result}}
+					{{$outputArray:=newArray}}
+					{{range $apiName, $output := .API.Response.Result}}
+						{{$out:=printf "\"%s\":%s" $apiName $output}}
+						{{$outputArray:=$outputArray.Append $out}}
+					{{end}}
+					{{$outStr:=$outputArray.Join ","}}
+					{{printf "%s%s%s" "{" $outStr "}"}}
+				 {{else}}
+				 	null
+				 {{end}}
+	{{else}}
+		"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+	{{end}}
 }
