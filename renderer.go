@@ -13,6 +13,7 @@ import (
 )
 
 type APIRenderData struct {
+	IsMulti  bool
 	Name     string
 	Response APIResponse
 }
@@ -212,6 +213,7 @@ func (p *APIResponseRenderer) Render(isMulti bool, response map[string]APIRespon
 
 		renderData := RenderData{
 			API: APIRenderData{
+				false,
 				api,
 				response,
 			},
@@ -242,7 +244,16 @@ func (p *APIResponseRenderer) Render(isMulti bool, response map[string]APIRespon
 		Result: output,
 	}
 
-	if err = p.ExecuteTemplate(&buf, p.defaultTemplate, multiResponse); err != nil {
+	multiRenderData := RenderData{
+		API: APIRenderData{
+			true,
+			"",
+			multiResponse,
+		},
+		Vars: p.Variables,
+	}
+
+	if err = p.ExecuteTemplate(&buf, p.defaultTemplate, multiRenderData); err != nil {
 		return
 	}
 
