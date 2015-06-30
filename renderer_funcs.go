@@ -506,7 +506,7 @@ func exist(item interface{}, indices ...interface{}) bool {
 			return false
 		}
 	}
-	return true
+	return !v.IsNil()
 }
 
 func doArithmetic(a, b interface{}, op rune) (interface{}, error) {

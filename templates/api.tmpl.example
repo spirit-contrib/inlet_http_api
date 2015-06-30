@@ -1,30 +1,39 @@
-{
+{{print "{"}}
+{{if .API.IsMulti}}
 	"code":{{.API.Response.Code}},
 	{{$strRespCode:= .API.Response.Code|toStr}}
 	{{if ne .API.Response.ErrorId ""}}"error_id":"{{.API.Response.ErrorId}}",{{end}}
 	{{if ne .API.Response.ErrorNamespace ""}}"error_namespace":"{{.API.Response.ErrorNamespace}}",{{end}}
-	{{if and (eq .API.Response.Code 0) (eq .API.IsMulti true) (exist .Vars.OKMessage .API.Name)}}
+	{{if .API.Response.Message}}
+		"message":"{{.API.Response.Message}}",
+	{{else}}
+		"message":"",
+	{{end}}
+	"result":{{if .API.Response.Result}}
+				{{$outputArray:=newArray}}
+				{{range $apiName, $output := .API.Response.Result}}
+					{{$out:=printf "\"%s\":%s" $apiName $output}}
+					{{$outputArray:=$outputArray.Append $out}}
+				{{end}}
+				{{$outStr:=$outputArray.Join ","}}
+				{{printf "%s%s%s" "{" $outStr "}"}}
+			 {{else}}
+			 	null
+			 {{end}}
+{{else}}
+	"code":{{.API.Response.Code}},
+	{{$strRespCode:= .API.Response.Code|toStr}}
+	{{if ne .API.Response.ErrorId ""}}"error_id":"{{.API.Response.ErrorId}}",{{end}}
+	{{if ne .API.Response.ErrorNamespace ""}}"error_namespace":"{{.API.Response.ErrorNamespace}}",{{end}}
+	{{if and (eq .API.Response.Code 0) (exist .Vars.OKMessage .API.Name)}}
 		"message":"{{index .Vars.OKMessage .API.Name}}",
 	{{else if and (gt .API.Response.Code 0) (exist .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode)}}
 		"message":"{{index .Vars.ErrorMessage .API.Response.ErrorNamespace $strRespCode}}",
 	{{else if .API.Response.Message}}
 		"message":"{{.API.Response.Message}}",
-	{{else}}
+	{{else}}	
 		"message":"",
 	{{end}}
-	{{if .API.IsMulti}}
-		"result":{{if .API.Response.Result}}
-					{{$outputArray:=newArray}}
-					{{range $apiName, $output := .API.Response.Result}}
-						{{$out:=printf "\"%s\":%s" $apiName $output}}
-						{{$outputArray:=$outputArray.Append $out}}
-					{{end}}
-					{{$outStr:=$outputArray.Join ","}}
-					{{printf "%s%s%s" "{" $outStr "}"}}
-				 {{else}}
-				 	null
-				 {{end}}
-	{{else}}
-		"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
-	{{end}}
-}
+	"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+{{end}}
+{{print "}"}}
