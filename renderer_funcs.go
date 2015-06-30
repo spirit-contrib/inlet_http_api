@@ -31,6 +31,7 @@ func init() {
 		"localtime":    time.Now().Local,
 		"newDict":      NewDict,
 		"scanf":        fmt.Sscanf,
+		"exist":        exist,
 	}
 }
 
@@ -353,7 +354,12 @@ func In(l interface{}, v interface{}) bool {
 }
 
 func toTimeE(i interface{}) (tim time.Time, err error) {
-	i = indirect(i)
+
+	if rv, isNil := indirect(reflect.ValueOf(i)); isNil {
+		i = nil
+	} else {
+		i = rv.Interface()
+	}
 
 	switch s := i.(type) {
 	case time.Time:
@@ -396,17 +402,71 @@ func parseDateWith(s string, dates []string) (d time.Time, e error) {
 	return d, fmt.Errorf("Unable to parse date: %s", s)
 }
 
-func indirect(a interface{}) interface{} {
-	if a == nil {
-		return nil
+// func indirect(a interface{}) interface{} {
+// 	if a == nil {
+// 		return nil
+// 	}
+// 	if t := reflect.TypeOf(a); t.Kind() != reflect.Ptr {
+// 		// Avoid creating a reflect.Value if it's not a pointer.
+// 		return a
+// 	}
+// 	v := reflect.ValueOf(a)
+// 	for v.Kind() == reflect.Ptr && !v.IsNil() {
+// 		v = v.Elem()
+// 	}
+// 	return v.Interface()
+// }
+
+func indirect(v reflect.Value) (rv reflect.Value, isNil bool) {
+	for ; v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface; v = v.Elem() {
+		if v.IsNil() {
+			return v, true
+		}
+		if v.Kind() == reflect.Interface && v.NumMethod() > 0 {
+			break
+		}
 	}
-	if t := reflect.TypeOf(a); t.Kind() != reflect.Ptr {
-		// Avoid creating a reflect.Value if it's not a pointer.
-		return a
+	return v, false
+}
+
+func exist(item interface{}, indices ...interface{}) bool {
+	v := reflect.ValueOf(item)
+	for _, i := range indices {
+		index := reflect.ValueOf(i)
+		var isNil bool
+		if v, isNil = indirect(v); isNil {
+			return false
+		}
+		switch v.Kind() {
+		case reflect.Array, reflect.Slice, reflect.String:
+			var x int64
+			switch index.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				x = index.Int()
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				x = int64(index.Uint())
+			default:
+				return false
+			}
+			if x < 0 || x >= int64(v.Len()) {
+				return false
+			}
+			v = v.Index(int(x))
+		case reflect.Map:
+			if !index.IsValid() {
+				index = reflect.Zero(v.Type().Key())
+			}
+			if !index.Type().AssignableTo(v.Type().Key()) {
+				return false
+			}
+			if x := v.MapIndex(index); x.IsValid() {
+				v = x
+			} else {
+				v = reflect.Zero(v.Type().Elem())
+			}
+		default:
+			return false
+		}
 	}
-	v := reflect.ValueOf(a)
-	for v.Kind() == reflect.Ptr && !v.IsNil() {
-		v = v.Elem()
-	}
-	return v.Interface()
+	return true
 }
