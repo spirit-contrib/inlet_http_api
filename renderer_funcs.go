@@ -30,6 +30,7 @@ func init() {
 		"now":          time.Now,
 		"localtime":    time.Now().Local,
 		"newDict":      NewDict,
+		"newArray":     NewArray,
 		"scanf":        fmt.Sscanf,
 		"exist":        exist,
 		"add":          func(a, b interface{}) (interface{}, error) { return doArithmetic(a, b, '+') },
@@ -65,6 +66,40 @@ func (p RenderDict) Del(key string) bool {
 		return true
 	}
 	return false
+}
+
+type RenderArray struct {
+	items []interface{}
+}
+
+func NewArray() *RenderArray {
+	return &RenderArray{
+		items: make([]interface{}, 0),
+	}
+}
+
+func (p *RenderArray) Append(v interface{}) bool {
+	p.items = append(p.items, v)
+	return true
+}
+
+func (p RenderArray) Join(sep string) string {
+	strs := []string{}
+
+	for _, item := range p.items {
+		switch val := item.(type) {
+		case string:
+			{
+				strs = append(strs, val)
+			}
+		default:
+			{
+				strv := fmt.Sprintf("%v", item)
+				strs = append(strs, strv)
+			}
+		}
+	}
+	return strings.Join(strs, sep)
 }
 
 func ToStr(v interface{}) (str string) {
