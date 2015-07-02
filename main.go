@@ -27,6 +27,10 @@ var (
 	responseRenderer *APIResponseRenderer
 )
 
+var (
+	renderedXDomainProxy string
+)
+
 func main() {
 	logs.SetFileLogger("logs/inlet_http_api.log")
 
@@ -90,19 +94,36 @@ func main() {
 		}
 
 		if httpConf.EnableStat {
-			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
-			}, martini.Static("stat"),
-				martini.Static("ping"),
-				martini.Static("xdomain"))
+			}, martini.Static("stat"))
+
 		} else {
-			go inletHTTP.Run(conf.HTTP.PATH, func(r martini.Router) {
+
+			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
-			}, martini.Static("ping"),
-				martini.Static("xdomain"))
+			})
 		}
+
+		inletHTTP.Group("/", func(r martini.Router) {
+			r.Get("xdomain/proxy.html", func() string {
+				return renderedXDomainProxy
+			})
+
+			r.Get("xdomain/lib/xdomain.min.js", func() string {
+				return xdomainProxyJS()
+			})
+
+			r.Get("ping", func() string {
+				return "pong"
+			})
+		})
+
+		renderedXDomainProxy = renderXDomainProxy(conf.HTTP.AllowOrigins, conf.HTTP.PATH)
+
+		go inletHTTP.Run()
 
 		return nil
 	}
