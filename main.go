@@ -94,15 +94,19 @@ func main() {
 		}
 
 		if httpConf.EnableStat {
-			inletHTTP.Group(conf.HTTP.PATH+"/:apiName", func(r martini.Router) {
+			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
+				r.Post("/:apiName", inletHTTP.Handler)
 				r.Options("", optionHandle)
+				r.Options("/:apiName", optionHandle)
 			}, martini.Static("stat"))
 
 		} else {
-			inletHTTP.Group(conf.HTTP.PATH+"/:apiName", func(r martini.Router) {
+			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
+				r.Post("/:apiName", inletHTTP.Handler)
 				r.Options("", optionHandle)
+				r.Options("/:apiName", optionHandle)
 			})
 		}
 
