@@ -21,11 +21,12 @@ const (
 
 type APIGraphProvider struct {
 	APIHeader string
+	Path      string
 
 	apiGraph map[string]spirit.MessageGraph
 }
 
-func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphConf []GraphsConfig) inlet_http.GraphProvider {
+func NewAPIGraphProvider(apiHeader string, path string, addressConf []AddressConfig, graphConf []GraphsConfig) inlet_http.GraphProvider {
 	mapAddr := make(map[string]spirit.MessageAddress)
 	for _, addr := range addressConf {
 		addr.Name = strings.TrimSpace(addr.Name)
@@ -79,6 +80,7 @@ func NewAPIGraphProvider(apiHeader string, addressConf []AddressConfig, graphCon
 	return &APIGraphProvider{
 		APIHeader: apiHeader,
 		apiGraph:  apiGraph,
+		Path:      path,
 	}
 }
 
@@ -129,6 +131,12 @@ func (p *APIGraphProvider) GetGraph(r *http.Request, body []byte) (graphs map[st
 	} else {
 		apiName := r.Header.Get(p.APIHeader)
 		apiName = strings.TrimSpace(apiName)
+
+		if apiName == "" {
+			if p.Path != r.RequestURI {
+				apiName = strings.TrimPrefix(r.RequestURI, p.Path+"/")
+			}
+		}
 
 		if err = appendFunc(apiName); err != nil {
 			return

@@ -53,7 +53,7 @@ func main() {
 	funcStartInletHTTP := func() error {
 		conf = LoadConfig("conf/inlet_http_api.conf")
 
-		graphProvider := NewAPIGraphProvider(API_HEADER, conf.Address, conf.Graphs)
+		graphProvider := NewAPIGraphProvider(API_HEADER, conf.HTTP.PATH, conf.Address, conf.Graphs)
 
 		httpConf := inlet_http.Config{
 			Address:    conf.HTTP.Address,
@@ -94,14 +94,13 @@ func main() {
 		}
 
 		if httpConf.EnableStat {
-			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
+			inletHTTP.Group(conf.HTTP.PATH+"/:apiName", func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
 			}, martini.Static("stat"))
 
 		} else {
-
-			inletHTTP.Group(conf.HTTP.PATH, func(r martini.Router) {
+			inletHTTP.Group(conf.HTTP.PATH+"/:apiName", func(r martini.Router) {
 				r.Post("", inletHTTP.Handler)
 				r.Options("", optionHandle)
 			})
