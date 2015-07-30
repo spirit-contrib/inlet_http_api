@@ -17,6 +17,7 @@ var funcMap template.FuncMap
 
 func init() {
 	funcMap = template.FuncMap{
+		"isNil":        isNil,
 		"getJSON":      GetJSON,
 		"getenv":       func(varName string) string { return os.Getenv(varName) },
 		"replaceMaps":  ReplaceMaps,
@@ -626,4 +627,8 @@ func doArithmetic(a, b interface{}, op rune) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("There is no such an operation")
 	}
+}
+
+func isNil(v interface{}) bool {
+	return v == nil
 }
