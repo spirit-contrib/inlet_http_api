@@ -9,7 +9,7 @@
 	{{else}}
 		"message":"",
 	{{end}}
-	"result":{{isNil .API.Response.Result}}
+	"result":{{if isNil .API.Response.Result}}
 				null
 			 {{else}}
 			 	{{$outputArray:=newArray}}
@@ -34,6 +34,6 @@
 	{{else}}	
 		"message":"",
 	{{end}}
-	"result":{{isNil .API.Response.Result}}null{{else}}{{.API.Response.Result | getJSON}}{{end}}
+	"result":{{if isNil .API.Response.Result}}null{{else}}{{.API.Response.Result | getJSON}}{{end}}
 {{end}}
 {{print "}"}}

@@ -9,7 +9,7 @@ func defaultAPITemplate() (name, tmpl string) {
 	{{if ne .API.Response.ErrorNamespace ""}}"error_namespace":"{{.API.Response.ErrorNamespace}}",{{end}}
 	"message":"{{.API.Response.Message}}",
 	{{if .API.IsMulti}}
-	"result":{{isNil .API.Response.Result}}
+	"result":{{if isNil .API.Response.Result}}
 				null
 			 {{else}}
 			 	{{$outputArray:=newArray}}
@@ -21,7 +21,7 @@ func defaultAPITemplate() (name, tmpl string) {
 				{{printf "%s%s%s" "{" $outStr "}"}}
 			 {{end}}
 	{{else}}
-		"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+		"result":{{if isNil .API.Response.Result}}null{{else}}{{.API.Response.Result | getJSON}}{{end}}
 	{{end}}
 }
 `
