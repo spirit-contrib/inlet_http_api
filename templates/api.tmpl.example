@@ -9,16 +9,16 @@
 	{{else}}
 		"message":"",
 	{{end}}
-	"result":{{if .API.Response.Result}}
-				{{$outputArray:=newArray}}
+	"result":{{isNil .API.Response.Result}}
+				null
+			 {{else}}
+			 	{{$outputArray:=newArray}}
 				{{range $apiName, $output := .API.Response.Result}}
 					{{$out:=printf "\"%s\":%s" $apiName $output}}
 					{{$outputArray:=$outputArray.Append $out}}
 				{{end}}
 				{{$outStr:=$outputArray.Join ","}}
 				{{printf "%s%s%s" "{" $outStr "}"}}
-			 {{else}}
-			 	null
 			 {{end}}
 {{else}}
 	"code":{{.API.Response.Code}},
@@ -34,6 +34,6 @@
 	{{else}}	
 		"message":"",
 	{{end}}
-	"result":{{if .API.Response.Result}}{{.API.Response.Result | getJSON}}{{else}}null{{end}}
+	"result":{{isNil .API.Response.Result}}null{{else}}{{.API.Response.Result | getJSON}}{{end}}
 {{end}}
 {{print "}"}}
