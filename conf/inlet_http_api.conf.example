@@ -9,7 +9,7 @@
         "cookies_domain": "",
         "p3p": "CP=\"CURa ADMa DEVa PSAo PSDo OUR BUS UNI PUR INT DEM STA PRE COM NAV OTC NOI DSP COR\"",
         "allow_origins": ["*"],
-        "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept", "X-API-MULTI-CALL", "X-API-CALL-TIMEOUT"]
+        "allow_headers": ["X-API", "Origin", "X-Requested-With", "Content-Type", "Accept", "X-API-MULTI-CALL", "X-API-CALL-TIMEOUT", "X-RANGE"]
     },
     "renderer":{
         "default_template":"",

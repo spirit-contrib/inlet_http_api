@@ -67,7 +67,8 @@ func main() {
 			inlet_http.SetErrorResponseHandler(errorResponseHandler),
 			inlet_http.SetRequestDecoder(requestDecoder),
 			inlet_http.SetRequestPayloadHook(requestPayloadHook),
-			inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT))
+			inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT),
+			inlet_http.SetRangeHeader(API_RANGE))
 
 		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
