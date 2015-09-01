@@ -1,19 +1,26 @@
 package api_client
 
 import (
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gogap/errors"
 	"github.com/gogap/spirit"
-	"github.com/parnurzeal/gorequest"
+	"github.com/mreiferson/go-httpclient"
+)
+
+var (
+	DefaultClientTimeout = time.Second * 5
 )
 
 type HTTPAPIClient struct {
 	apiHeaderName string
-	timeout       time.Duration
 	url           string
+	client        *http.Client
 }
 
 func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) APIClient {
@@ -28,10 +35,20 @@ func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) A
 		apiHeaderName = "X-API"
 	}
 
+	if timeout <= 0 {
+		timeout = DefaultClientTimeout
+	}
+
+	transport := &httpclient.Transport{
+		ConnectTimeout:        timeout,
+		RequestTimeout:        timeout,
+		ResponseHeaderTimeout: timeout,
+	}
+
 	apiClient := HTTPAPIClient{
 		apiHeaderName: apiHeaderName,
-		timeout:       timeout,
 		url:           url,
+		client:        &http.Client{Transport: transport},
 	}
 	return &apiClient
 }
@@ -49,7 +66,37 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 		return
 	}
 
-	_, body, errs := gorequest.New().Post(p.url).Set(p.apiHeaderName, apiName).Send(string(data)).End()
+	postBodyReader := bytes.NewReader(data)
+
+	var req *http.Request
+	if req, err = http.NewRequest("POST", p.url, postBodyReader); err != nil {
+		err = ERR_API_CLIENT_CREATE_NEW_REQUEST_FAILED.New(errors.Params{"err": err})
+		return
+	}
+
+	req.Header.Add(p.apiHeaderName, apiName)
+
+	var resp *http.Response
+	if resp, err = p.client.Do(req); err != nil {
+		err = ERR_API_CLIENT_SEND_FAILED.New(errors.Params{"api": apiName, "url": p.url})
+		return
+	}
+
+	var body []byte
+
+	if resp != nil {
+		defer resp.Body.Close()
+
+		if bBody, e := ioutil.ReadAll(resp.Body); e != nil {
+			err = ERR_API_CLIENT_READ_RESPONSE_BODY_FAILED.New(errors.Params{"api": apiName, "err": e})
+			return
+		} else if resp.StatusCode != http.StatusOK {
+			err = ERR_API_CLIENT_BAD_STATUS_CODE.New(errors.Params{"api": apiName, "code": resp.StatusCode})
+			return
+		} else {
+			body = bBody
+		}
+	}
 
 	var tmpResp struct {
 		Code           uint64      `json:"code"`
@@ -59,18 +106,11 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 		Result         interface{} `json:"result"`
 	}
 
-	err = errs_to_error(errs)
-
-	if err != nil {
-		err = ERR_API_CLIENT_SEND_FAILED.New(errors.Params{"api": apiName, "url": p.url})
-		return
-	}
-
 	if v != nil {
 		tmpResp.Result = v
 	}
 
-	if e := json.Unmarshal([]byte(body), &tmpResp); e != nil {
+	if e := json.Unmarshal(body, &tmpResp); e != nil {
 		err = ERR_API_CLIENT_RESPONSE_UNMARSHAL_FAILED.New(errors.Params{"api": apiName, "url": p.url, "err": e})
 		return
 	}
@@ -87,16 +127,4 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 
 func (p *HTTPAPIClient) Cast(apiName string, payload spirit.Payload) (err error) {
 	return p.Call(apiName, payload, nil)
-}
-
-func errs_to_error(errs []error) error {
-	if errs == nil || len(errs) == 0 {
-		return nil
-	}
-
-	strErr := ""
-	for _, e := range errs {
-		strErr += e.Error() + "; "
-	}
-	return errors.New(strErr)
 }
