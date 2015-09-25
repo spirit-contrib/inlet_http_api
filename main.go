@@ -348,7 +348,7 @@ func writeAccessHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeBasicHeaders(w http.ResponseWriter, r *http.Request) {
-	for key, value := range conf.HTTP.responseHeaders {
+	for key, value := range conf.HTTP.ResponseHeaders {
 		w.Header().Set(key, value)
 	}
 }
