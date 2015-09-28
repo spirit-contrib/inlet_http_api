@@ -218,7 +218,8 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		"X-Requested-With",
 		"X-Api",
 		"X-Api-Multi-Call",
-		"X-Api-Call-Timeout"}
+		"X-Api-Call-Timeout",
+		API_RANGE}
 
 	if conf.HTTP.APIHeader != "" {
 		internalAllowHeaders = append(internalAllowHeaders, conf.HTTP.APIHeader)
