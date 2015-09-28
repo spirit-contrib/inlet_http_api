@@ -23,16 +23,17 @@ type InletHTTPAPIConfig struct {
 }
 
 type HTTPConfig struct {
-	Address         string            `json:"address"`
-	Server          string            `json:"server"`
-	APIHeader       string            `json:"api_header"`
-	CookiesDomain   string            `json:"cookies_domain"`
-	EnableStat      bool              `json:"enable_stat"`
-	P3P             string            `json:"p3p"`
-	AllowOrigins    []string          `json:"allow_origins"`
-	AllowHeaders    []string          `json:"allow_headers"`
-	PATH            string            `json:"path"`
-	ResponseHeaders map[string]string `json:"response_headers"`
+	Address            string            `json:"address"`
+	Server             string            `json:"server"`
+	APIHeader          string            `json:"api_header"`
+	CookiesDomain      string            `json:"cookies_domain"`
+	EnableStat         bool              `json:"enable_stat"`
+	P3P                string            `json:"p3p"`
+	AllowOrigins       []string          `json:"allow_origins"`
+	AllowHeaders       []string          `json:"allow_headers"`
+	PATH               string            `json:"path"`
+	ResponseHeaders    map[string]string `json:"response_headers"`
+	PassThroughHeaders []string          `json:"pass_through_headers"`
 
 	_AllowHeaders string          `json:"-"`
 	allowOrigins  map[string]bool `json:"-"`
