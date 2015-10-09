@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	API_HEADER  = "X-API"
+	API_HEADER  = "X-Api"
 	METHOD_POST = "POST"
 
-	API_RANGE = "X-RANGE"
+	API_RANGE = "X-Range"
 
-	MULTI_CALL       = "X-API-MULTI-CALL"
-	API_CALL_TIMEOUT = "X-API-CALL-TIMEOUT"
+	MULTI_CALL       = "X-Api-Multi-Call"
+	API_CALL_TIMEOUT = "X-Api-Call-Timeout"
 )
 
 type APIGraphProvider struct {

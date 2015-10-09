@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -61,6 +62,8 @@ func main() {
 			EnableStat: conf.HTTP.EnableStat,
 		}
 
+		emptyLogger := log.New(new(EmptyWriter), "", 0)
+
 		inletHTTP.Option(inlet_http.SetHTTPConfig(httpConf),
 			inlet_http.SetGraphProvider(graphProvider),
 			inlet_http.SetResponseHandler(responseHandle),
@@ -68,7 +71,9 @@ func main() {
 			inlet_http.SetRequestDecoder(requestDecoder),
 			inlet_http.SetRequestPayloadHook(requestPayloadHook),
 			inlet_http.SetTimeoutHeader(API_CALL_TIMEOUT),
-			inlet_http.SetRangeHeader(API_RANGE))
+			inlet_http.SetRangeHeader(API_RANGE),
+			inlet_http.SetPassThroughHeaders(conf.HTTP.PassThroughHeaders...),
+			inlet_http.SetLogger(emptyLogger))
 
 		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
@@ -348,7 +353,7 @@ func writeAccessHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeBasicHeaders(w http.ResponseWriter, r *http.Request) {
-	for key, value := range conf.HTTP.responseHeaders {
+	for key, value := range conf.HTTP.ResponseHeaders {
 		w.Header().Set(key, value)
 	}
 }

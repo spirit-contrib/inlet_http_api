@@ -23,18 +23,20 @@ type InletHTTPAPIConfig struct {
 }
 
 type HTTPConfig struct {
-	Address       string   `json:"address"`
-	Server        string   `json:"server"`
-	APIHeader     string   `json:"api_header"`
-	CookiesDomain string   `json:"cookies_domain"`
-	EnableStat    bool     `json:"enable_stat"`
-	P3P           string   `json:"p3p"`
-	AllowOrigins  []string `json:"allow_origins"`
-	AllowHeaders  []string `json:"allow_headers"`
-	PATH          string   `json:"path"`
+	Address            string            `json:"address"`
+	Server             string            `json:"server"`
+	APIHeader          string            `json:"api_header"`
+	CookiesDomain      string            `json:"cookies_domain"`
+	EnableStat         bool              `json:"enable_stat"`
+	P3P                string            `json:"p3p"`
+	AllowOrigins       []string          `json:"allow_origins"`
+	AllowHeaders       []string          `json:"allow_headers"`
+	PATH               string            `json:"path"`
+	ResponseHeaders    map[string]string `json:"response_headers"`
+	PassThroughHeaders []string          `json:"pass_through_headers"`
 
-	allowOrigins    map[string]bool   `json:"-"`
-	responseHeaders map[string]string `json:"-"`
+	_AllowHeaders string          `json:"-"`
+	allowOrigins  map[string]bool `json:"-"`
 }
 
 type RendererConfig struct {
@@ -89,8 +91,13 @@ func (p *HTTPConfig) ParseOrigin(refer string) (protocol string, domin string, i
 }
 
 func (p *HTTPConfig) allowHeaders() string {
+	if p._AllowHeaders != "" {
+		return p._AllowHeaders
+	}
+
 	if p.AllowHeaders != nil {
-		return strings.Join(p.AllowHeaders, ",")
+		p._AllowHeaders = strings.Join(p.AllowHeaders, ",")
+		return p._AllowHeaders
 	}
 	return ""
 }
@@ -157,18 +164,20 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		conf.HTTP.allowOrigins[allowOrigin] = true
 	}
 
-	if conf.HTTP.responseHeaders == nil {
-		conf.HTTP.responseHeaders = make(map[string]string)
+	if conf.HTTP.ResponseHeaders == nil {
+		conf.HTTP.ResponseHeaders = make(map[string]string)
 	}
 
 	if conf.HTTP.P3P != "" {
-		conf.HTTP.responseHeaders["P3P"] = conf.HTTP.P3P
+		if _, exist := conf.HTTP.ResponseHeaders["P3P"]; !exist {
+			conf.HTTP.ResponseHeaders["P3P"] = conf.HTTP.P3P
+		}
 	}
 
 	if conf.HTTP.Server == "" {
-		conf.HTTP.responseHeaders["Server"] = conf.HTTP.Server
+		conf.HTTP.ResponseHeaders["Server"] = conf.HTTP.Server
 	} else {
-		conf.HTTP.responseHeaders["Server"] = "spirit"
+		conf.HTTP.ResponseHeaders["Server"] = "spirit"
 	}
 
 	logs.Info("config file loaded:", filename)
@@ -200,6 +209,41 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 			proxyAPI[graph.API] = true
 		}
 	}
+
+	internalAllowHeaders := []string{
+		"Origin",
+		"Content-Type",
+		"Authorization",
+		"Accept",
+		"X-Requested-With",
+		"X-Api",
+		"X-Api-Multi-Call",
+		"X-Api-Call-Timeout",
+		API_RANGE}
+
+	if conf.HTTP.APIHeader != "" {
+		internalAllowHeaders = append(internalAllowHeaders, conf.HTTP.APIHeader)
+	}
+
+	distinctCache := map[string]string{}
+
+	for _, header := range internalAllowHeaders {
+		distinctCache[strings.ToLower(header)] = header
+	}
+
+	for _, header := range conf.HTTP.AllowHeaders {
+		if _, exist := distinctCache[strings.ToLower(header)]; !exist {
+			distinctCache[strings.ToLower(header)] = header
+		}
+	}
+
+	allowHeaders := []string{}
+
+	for _, header := range distinctCache {
+		allowHeaders = append(allowHeaders, header)
+	}
+
+	conf.HTTP.AllowHeaders = allowHeaders
 
 	return conf
 }
