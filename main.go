@@ -320,9 +320,7 @@ func signatureResponse(data []byte, w http.ResponseWriter) {
 		return
 	}
 
-	hash := sha1hash(data)
-
-	if bSignature, err := rsa.SignPKCS1v15(rand.Reader, conf.HTTP.Signature._PrivateKey, crypto.SHA1, sha1hash(hash)); err != nil {
+	if bSignature, err := rsa.SignPKCS1v15(rand.Reader, conf.HTTP.Signature._PrivateKey, crypto.SHA1, sha1hash(data)); err != nil {
 		logs.Error(err)
 	} else {
 		signature := base64.StdEncoding.EncodeToString(sha1hash(bSignature))
