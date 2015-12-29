@@ -11,7 +11,12 @@
         "allow_origins": ["*"],
         "allow_headers": [],
         "response_headers": {"X-Test": "001"},
-        "pass_through_headers": ["Authorization"]
+        "pass_through_headers": ["Authorization"],
+        "signature":{
+            "enabled":true,
+            "private_key":"",
+            "header":"X-Signature"
+        }
     },
     "renderer":{
         "default_template":"",
