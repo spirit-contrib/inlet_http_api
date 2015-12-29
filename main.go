@@ -1,6 +1,11 @@
 package main
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -304,9 +309,31 @@ func responseHandle(graphsResponse map[string]inlet_http.GraphResponse, w http.R
 	}
 }
 
+func sha1hash(hash []byte) []byte {
+	h := sha1.New()
+	h.Write(hash)
+	return h.Sum(nil)
+}
+
+func signatureResponse(data []byte, w http.ResponseWriter) {
+	if !conf.HTTP.Signature.Enabled {
+		return
+	}
+
+	hash := sha1hash(data)
+
+	if bSignature, err := rsa.SignPKCS1v15(rand.Reader, conf.HTTP.Signature._PrivateKey, crypto.SHA1, sha1hash(hash)); err != nil {
+		logs.Error(err)
+	} else {
+		signature := base64.StdEncoding.EncodeToString(sha1hash(bSignature))
+		w.Header().Set(conf.HTTP.Signature.Header, signature)
+	}
+}
+
 func writeTextResponse(text string, w http.ResponseWriter, r *http.Request) {
 	writeAccessHeaders(w, r)
 	writeBasicHeaders(w, r)
+	signatureResponse([]byte(text), w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(text))
@@ -326,6 +353,7 @@ func writeResponseWithStatusCode(v interface{}, w http.ResponseWriter, r *http.R
 	} else {
 		writeAccessHeaders(w, r)
 		writeBasicHeaders(w, r)
+		signatureResponse(data, w)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(code)
 		w.Write(data)

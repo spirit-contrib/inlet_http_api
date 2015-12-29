@@ -1,6 +1,10 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -9,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gogap/env_json"
+	"github.com/gogap/errors"
 	"github.com/gogap/logs"
 )
 
@@ -20,6 +25,14 @@ type InletHTTPAPIConfig struct {
 	IncludeConfigFiles []string        `json:"include_config_files"`
 	Address            []AddressConfig `json:"address"`
 	Graphs             []GraphsConfig  `json:"graphs"`
+}
+
+type SignatureConfig struct {
+	Enabled    bool   `json:"enabled"`
+	PrivateKey string `json:"private_key"`
+	Header     string `json:"header"`
+
+	_PrivateKey *rsa.PrivateKey
 }
 
 type HTTPConfig struct {
@@ -34,6 +47,7 @@ type HTTPConfig struct {
 	PATH               string            `json:"path"`
 	ResponseHeaders    map[string]string `json:"response_headers"`
 	PassThroughHeaders []string          `json:"pass_through_headers"`
+	Signature          SignatureConfig   `json:"signature"`
 
 	_AllowHeaders string          `json:"-"`
 	allowOrigins  map[string]bool `json:"-"`
@@ -221,6 +235,31 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 		"X-Api-Call-Timeout",
 		API_RANGE}
 
+	if conf.HTTP.Signature.Enabled {
+
+		if conf.HTTP.Signature.PrivateKey == "" {
+			panic(errors.New("private key could not be empty while signature is enabled"))
+		}
+
+		var keyData []byte
+		if data, err := base64.StdEncoding.DecodeString(conf.HTTP.Signature.PrivateKey); err != nil {
+			panic(fmt.Errorf("private key should encode by base64, err: %s", err.Error()))
+		} else {
+			keyData = data
+		}
+
+		if privKey, err := toPrivateKey(keyData); err != nil {
+			panic(err)
+		} else {
+			conf.HTTP.Signature._PrivateKey = privKey
+		}
+
+		if conf.HTTP.Signature.Header == "" {
+			conf.HTTP.Signature.Header = "X-Signature"
+		}
+		internalAllowHeaders = append(internalAllowHeaders, conf.HTTP.Signature.Header)
+	}
+
 	if conf.HTTP.APIHeader != "" {
 		internalAllowHeaders = append(internalAllowHeaders, conf.HTTP.APIHeader)
 	}
@@ -246,4 +285,17 @@ func LoadConfig(filename string) InletHTTPAPIConfig {
 	conf.HTTP.AllowHeaders = allowHeaders
 
 	return conf
+}
+
+func toPrivateKey(key []byte) (priv *rsa.PrivateKey, err error) {
+	block, _ := pem.Decode(key)
+	if block == nil {
+		err = errors.New("private key error!")
+		return
+	}
+	priv, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return
+	}
+	return
 }
