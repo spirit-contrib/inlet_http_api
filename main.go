@@ -323,7 +323,7 @@ func signatureResponse(data []byte, w http.ResponseWriter) {
 	if bSignature, err := rsa.SignPKCS1v15(rand.Reader, conf.HTTP.Signature._PrivateKey, crypto.SHA1, sha1hash(data)); err != nil {
 		logs.Error(err)
 	} else {
-		signature := base64.StdEncoding.EncodeToString(sha1hash(bSignature))
+		signature := base64.StdEncoding.EncodeToString(bSignature)
 		w.Header().Set(conf.HTTP.Signature.Header, signature)
 	}
 }
