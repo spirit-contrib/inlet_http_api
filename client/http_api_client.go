@@ -78,7 +78,7 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 
 	var resp *http.Response
 	if resp, err = p.client.Do(req); err != nil {
-		err = ERR_API_CLIENT_SEND_FAILED.New(errors.Params{"api": apiName, "url": p.url})
+		err = ERR_API_CLIENT_SEND_FAILED.New(errors.Params{"api": apiName, "url": p.url, "err": err})
 		return
 	}
 
