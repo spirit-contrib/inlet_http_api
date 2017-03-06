@@ -60,11 +60,29 @@ func NewAPIGraphProvider(apiHeader string, path string, addressConf []AddressCon
 				}
 			}
 
+			beforeAddrs := []spirit.MessageAddress{}
+			for _, addrName := range hooks.Before {
+				if addr, exist := mapAddr[addrName]; exist {
+					beforeAddrs = append(beforeAddrs, addr)
+				} else {
+					panic(fmt.Sprintf("address of %s not exist", addrName))
+				}
+			}
+
+			afterAddrs := []spirit.MessageAddress{}
+			for _, addrName := range hooks.After {
+				if addr, exist := mapAddr[addrName]; exist {
+					afterAddrs = append(afterAddrs, addr)
+				} else {
+					panic(fmt.Sprintf("address of %s not exist", addrName))
+				}
+			}
+
 			g := make(spirit.MessageGraph)
 
-			g.AddAddress(hooks.Before...)
+			g.AddAddress(beforeAddrs...)
 			g.AddAddress(addrs...)
-			g.AddAddress(hooks.After...)
+			g.AddAddress(afterAddrs...)
 
 			graph.ErrorAddressName = strings.TrimSpace(graph.ErrorAddressName)
 			if graph.ErrorAddressName != "" {
