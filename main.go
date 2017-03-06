@@ -60,7 +60,7 @@ func main() {
 	funcStartInletHTTP := func() error {
 		conf = LoadConfig("conf/inlet_http_api.conf")
 
-		graphProvider := NewAPIGraphProvider(API_HEADER, conf.HTTP.PATH, conf.Address, conf.Graphs)
+		graphProvider := NewAPIGraphProvider(API_HEADER, conf.HTTP.PATH, conf.Address, conf.Graphs, conf.GraphHooks)
 
 		httpConf := inlet_http.Config{
 			Address:    conf.HTTP.Address,
