@@ -55,6 +55,7 @@ func main() {
 
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
 	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
+	httpAPIComponent.RegisterHandler("nothing", inletHTTP.Nothing)
 
 	funcStartInletHTTP := func() error {
 		conf = LoadConfig("conf/inlet_http_api.conf")
@@ -79,8 +80,6 @@ func main() {
 			inlet_http.SetRangeHeader(API_RANGE),
 			inlet_http.SetPassThroughHeaders(conf.HTTP.PassThroughHeaders...),
 			inlet_http.SetLogger(emptyLogger))
-
-		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
 		if e := responseRenderer.LoadTemplates(conf.Renderer.Templates...); e != nil {
 			panic(e)
