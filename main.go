@@ -55,11 +55,12 @@ func main() {
 
 	httpAPIComponent.RegisterHandler("callback", inletHTTP.CallBack)
 	httpAPIComponent.RegisterHandler("error", inletHTTP.Error)
+	httpAPIComponent.RegisterHandler("nothing", inletHTTP.Nothing)
 
 	funcStartInletHTTP := func() error {
 		conf = LoadConfig("conf/inlet_http_api.conf")
 
-		graphProvider := NewAPIGraphProvider(API_HEADER, conf.HTTP.PATH, conf.Address, conf.Graphs)
+		graphProvider := NewAPIGraphProvider(API_HEADER, conf.HTTP.PATH, conf.Address, conf.Graphs, conf.GraphHooks)
 
 		httpConf := inlet_http.Config{
 			Address:    conf.HTTP.Address,
@@ -79,8 +80,6 @@ func main() {
 			inlet_http.SetRangeHeader(API_RANGE),
 			inlet_http.SetPassThroughHeaders(conf.HTTP.PassThroughHeaders...),
 			inlet_http.SetLogger(emptyLogger))
-
-		inletHTTP.Requester().SetMessageSenderFactory(spirit.GetMessageSenderFactory())
 
 		if e := responseRenderer.LoadTemplates(conf.Renderer.Templates...); e != nil {
 			panic(e)

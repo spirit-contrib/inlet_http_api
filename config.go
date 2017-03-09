@@ -25,6 +25,12 @@ type InletHTTPAPIConfig struct {
 	IncludeConfigFiles []string        `json:"include_config_files"`
 	Address            []AddressConfig `json:"address"`
 	Graphs             []GraphsConfig  `json:"graphs"`
+	GraphHooks         GraphHooks      `json:"graph_hooks"`
+}
+
+type GraphHooks struct {
+	Before []string `json:"before"`
+	After  []string `json:"after"`
 }
 
 type SignatureConfig struct {

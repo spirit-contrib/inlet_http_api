@@ -28,7 +28,7 @@ type APIGraphProvider struct {
 	apiGraph map[string]spirit.MessageGraph
 }
 
-func NewAPIGraphProvider(apiHeader string, path string, addressConf []AddressConfig, graphConf []GraphsConfig) inlet_http.GraphProvider {
+func NewAPIGraphProvider(apiHeader string, path string, addressConf []AddressConfig, graphConf []GraphsConfig, hooks GraphHooks) inlet_http.GraphProvider {
 	mapAddr := make(map[string]spirit.MessageAddress)
 	for _, addr := range addressConf {
 		addr.Name = strings.TrimSpace(addr.Name)
@@ -60,8 +60,29 @@ func NewAPIGraphProvider(apiHeader string, path string, addressConf []AddressCon
 				}
 			}
 
+			beforeAddrs := []spirit.MessageAddress{}
+			for _, addrName := range hooks.Before {
+				if addr, exist := mapAddr[addrName]; exist {
+					beforeAddrs = append(beforeAddrs, addr)
+				} else {
+					panic(fmt.Sprintf("address of %s not exist", addrName))
+				}
+			}
+
+			afterAddrs := []spirit.MessageAddress{}
+			for _, addrName := range hooks.After {
+				if addr, exist := mapAddr[addrName]; exist {
+					afterAddrs = append(afterAddrs, addr)
+				} else {
+					panic(fmt.Sprintf("address of %s not exist", addrName))
+				}
+			}
+
 			g := make(spirit.MessageGraph)
+
+			g.AddAddress(beforeAddrs...)
 			g.AddAddress(addrs...)
+			g.AddAddress(afterAddrs...)
 
 			graph.ErrorAddressName = strings.TrimSpace(graph.ErrorAddressName)
 			if graph.ErrorAddressName != "" {

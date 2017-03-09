@@ -2,6 +2,11 @@
     "components": [{
         "name": "inlet_http_api",
         "address": [{
+            "port_name": "inlet.api.nothing",
+            "handler_name": "nothing",
+            "type": "localchan",
+            "url": "localchan://inlet_http/empty/nothing"
+        }, {
             "port_name": "inlet.api.callback",
             "handler_name": "callback",
             "type": "mqs",
