@@ -3,6 +3,7 @@ package api_client
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,9 +19,11 @@ var (
 )
 
 type HTTPAPIClient struct {
-	apiHeaderName string
-	url           string
-	client        *http.Client
+	apiTimeoutName string
+	apiHeaderName  string
+	timeout        time.Duration
+	url            string
+	client         *http.Client
 }
 
 func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) APIClient {
@@ -31,7 +34,7 @@ func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) A
 		panic("url could not be nil")
 	}
 
-	if apiHeaderName == "" {
+	if apiHeaderName == 0 {
 		apiHeaderName = "X-API"
 	}
 
@@ -46,9 +49,11 @@ func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) A
 	}
 
 	apiClient := HTTPAPIClient{
-		apiHeaderName: apiHeaderName,
-		url:           url,
-		client:        &http.Client{Transport: transport},
+		apiHeaderName:  apiHeaderName,
+		apiTimeoutName: "X-API-CALL-TIMEOUT",
+		timeout:        timeout,
+		url:            url,
+		client:         &http.Client{Transport: transport},
 	}
 	return &apiClient
 }
@@ -75,6 +80,7 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 	}
 
 	req.Header.Add(p.apiHeaderName, apiName)
+	req.Header.Add(p.apiTimeoutName, fmt.Sprintf("%d", timeout.Nanoseconds()/1000000))
 
 	var resp *http.Response
 	if resp, err = p.client.Do(req); err != nil {
