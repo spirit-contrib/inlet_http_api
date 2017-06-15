@@ -34,7 +34,7 @@ func NewHTTPAPIClient(url string, apiHeaderName string, timeout time.Duration) A
 		panic("url could not be nil")
 	}
 
-	if apiHeaderName == 0 {
+	if len(apiHeaderName) == 0 {
 		apiHeaderName = "X-API"
 	}
 
@@ -80,7 +80,7 @@ func (p *HTTPAPIClient) Call(apiName string, payload spirit.Payload, v interface
 	}
 
 	req.Header.Add(p.apiHeaderName, apiName)
-	req.Header.Add(p.apiTimeoutName, fmt.Sprintf("%d", timeout.Nanoseconds()/1000000))
+	req.Header.Add(p.apiTimeoutName, fmt.Sprintf("%d", p.timeout.Nanoseconds()/1000000))
 
 	var resp *http.Response
 	if resp, err = p.client.Do(req); err != nil {
